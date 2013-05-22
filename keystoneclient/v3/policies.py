@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from keystoneclient import base
+from keystoneclient.openstack.common.apiclient import base
 
 
 class Policy(base.Resource):

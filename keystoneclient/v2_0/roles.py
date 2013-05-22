@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from keystoneclient import base
+from keystoneclient.openstack.common.apiclient import base
 
 
 class Role(base.Resource):
@@ -38,7 +38,7 @@ class RoleManager(base.ManagerWithFind):
         Create a role.
         """
         params = {"role": {"name": name}}
-        return self._create('/OS-KSADM/roles', params, "role")
+        return self._post('/OS-KSADM/roles', params, "role")
 
     def delete(self, role):
         """
@@ -72,10 +72,10 @@ class RoleManager(base.ManagerWithFind):
         if tenant:
             route = "/tenants/%s/users/%s/roles/OS-KSADM/%s"
             params = (base.getid(tenant), user_id, role_id)
-            return self._update(route % params, None, "role")
+            return self._put(route % params, None, "role")
         else:
             route = "/users/%s/roles/OS-KSADM/%s"
-            return self._update(route % (user_id, role_id), None, "roles")
+            return self._put(route % (user_id, role_id), None, "roles")
 
     def remove_user_role(self, user, role, tenant=None):
         """Removes a role from a user.

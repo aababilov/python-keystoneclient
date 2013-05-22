@@ -16,7 +16,7 @@
 
 import urllib
 
-from keystoneclient import base
+from keystoneclient.openstack.common.apiclient import base
 
 
 class User(base.Resource):
@@ -49,7 +49,7 @@ class UserManager(base.ManagerWithFind):
         params = {"user": kwargs}
         params['user']['id'] = base.getid(user)
         url = "/users/%s" % base.getid(user)
-        return self._update(url, params, "user")
+        return self._put(url, params, "user")
 
     def update_enabled(self, user, enabled):
         """
@@ -58,7 +58,7 @@ class UserManager(base.ManagerWithFind):
         params = {"user": {"id": base.getid(user),
                            "enabled": enabled}}
 
-        self._update("/users/%s/OS-KSADM/enabled" % base.getid(user), params,
+        self._put("/users/%s/OS-KSADM/enabled" % base.getid(user), params,
                      "user")
 
     def update_password(self, user, password):
@@ -68,7 +68,7 @@ class UserManager(base.ManagerWithFind):
         params = {"user": {"id": base.getid(user),
                            "password": password}}
 
-        return self._update("/users/%s/OS-KSADM/password" % base.getid(user),
+        return self._put("/users/%s/OS-KSADM/password" % base.getid(user),
                             params, "user")
 
     def update_own_password(self, origpasswd, passwd):
@@ -78,10 +78,10 @@ class UserManager(base.ManagerWithFind):
         params = {"user": {"password": passwd,
                            "original_password": origpasswd}}
 
-        return self._update("/OS-KSCRUD/users/%s" % self.api.user_id, params,
-                            response_key="access",
-                            method="PATCH",
-                            management=False)
+        return self._patch(
+            "/OS-KSCRUD/users/%s" % self.client.http_client.auth_response.user_id,
+            params,
+            response_key="access")
 
     def update_tenant(self, user, tenant):
         """
@@ -92,7 +92,7 @@ class UserManager(base.ManagerWithFind):
 
         # FIXME(ja): seems like a bad url - default tenant is an attribute
         #            not a subresource!???
-        return self._update("/users/%s/OS-KSADM/tenant" % base.getid(user),
+        return self._put("/users/%s/OS-KSADM/tenant" % base.getid(user),
                             params, "user")
 
     def create(self, name, password, email, tenant_id=None, enabled=True):
@@ -105,7 +105,7 @@ class UserManager(base.ManagerWithFind):
                            "tenantId": tenant_id,
                            "email": email,
                            "enabled": enabled}}
-        return self._create('/users', params, "user")
+        return self._post('/users', params, "user")
 
     def delete(self, user):
         """

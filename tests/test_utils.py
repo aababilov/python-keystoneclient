@@ -1,5 +1,6 @@
 from keystoneclient.openstack.common.apiclient import exceptions
 from keystoneclient import utils
+from keystoneclient.openstack.common.apiclient import fake_client
 from tests import utils as test_utils
 
 

@@ -5,6 +5,8 @@ import json
 import requests
 
 from keystoneclient.v2_0 import users
+from keystoneclient.openstack.common.apiclient import client as api_client
+from keystoneclient.openstack.common.apiclient import fake_client
 from tests import utils
 
 
@@ -13,12 +15,12 @@ class UserTests(utils.TestCase):
         super(UserTests, self).setUp()
         self.TEST_REQUEST_HEADERS = {
             'X-Auth-Token': 'aToken',
-            'User-Agent': 'python-keystoneclient',
+            'User-Agent': api_client.HTTPClient.user_agent,
         }
         self.TEST_POST_HEADERS = {
             'Content-Type': 'application/json',
             'X-Auth-Token': 'aToken',
-            'User-Agent': 'python-keystoneclient',
+            'User-Agent': api_client.HTTPClient.user_agent,
         }
         self.TEST_USERS = {
             "users": {
@@ -59,7 +61,7 @@ class UserTests(utils.TestCase):
                 "email": "test@example.com",
             }
         }
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(resp_body),
         })
@@ -67,7 +69,7 @@ class UserTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request(
+        self.add_request(
             'POST',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users'),
             **kwargs).AndReturn((resp))
@@ -84,14 +86,14 @@ class UserTests(utils.TestCase):
         self.assertEqual(user.email, "test@example.com")
 
     def test_delete(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": "",
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request(
+        self.add_request(
             'DELETE',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users/1'),
             **kwargs).AndReturn((resp))
@@ -100,7 +102,7 @@ class UserTests(utils.TestCase):
         self.client.users.delete(1)
 
     def test_get(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps({
                 'user': self.TEST_USERS['users']['values'][0],
@@ -109,7 +111,7 @@ class UserTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request(
+        self.add_request(
             'GET',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users/1'),
             **kwargs).AndReturn((resp))
@@ -121,14 +123,14 @@ class UserTests(utils.TestCase):
         self.assertEqual(u.name, 'admin')
 
     def test_list(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_USERS),
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request(
+        self.add_request(
             'GET',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users'),
             **kwargs).AndReturn((resp))
@@ -138,14 +140,14 @@ class UserTests(utils.TestCase):
         [self.assertTrue(isinstance(u, users.User)) for u in user_list]
 
     def test_list_limit(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_USERS),
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request(
+        self.add_request(
             'GET',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users?limit=1'),
             **kwargs).AndReturn((resp))
@@ -155,14 +157,14 @@ class UserTests(utils.TestCase):
         [self.assertTrue(isinstance(u, users.User)) for u in user_list]
 
     def test_list_marker(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_USERS),
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request(
+        self.add_request(
             'GET',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users?marker=foo'),
             **kwargs).AndReturn((resp))
@@ -172,14 +174,14 @@ class UserTests(utils.TestCase):
         [self.assertTrue(isinstance(u, users.User)) for u in user_list]
 
     def test_list_limit_marker(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_USERS),
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request(
+        self.add_request(
             'GET',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users?marker=foo&limit=1'),
             **kwargs).AndReturn((resp))
@@ -216,19 +218,19 @@ class UserTests(utils.TestCase):
         }
 
         # Keystone basically echoes these back... including the password :-/
-        resp_1 = utils.TestResponse({
+        resp_1 = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(req_1)
         })
-        resp_2 = utils.TestResponse({
+        resp_2 = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(req_2)
         })
-        resp_3 = utils.TestResponse({
+        resp_3 = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(req_3)
         })
-        resp_4 = utils.TestResponse({
+        resp_4 = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(req_4)
         })
@@ -236,28 +238,28 @@ class UserTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_1)
-        requests.request(
+        self.add_request(
             'PUT',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users/2'),
             **kwargs).AndReturn((resp_1))
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_2)
-        requests.request(
+        self.add_request(
             'PUT',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users/2/OS-KSADM/password'),
             **kwargs).AndReturn((resp_2))
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_3)
-        requests.request(
+        self.add_request(
             'PUT',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users/2/OS-KSADM/tenant'),
             **kwargs).AndReturn((resp_3))
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_4)
-        requests.request(
+        self.add_request(
             'PUT',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users/2/OS-KSADM/enabled'),
             **kwargs).AndReturn((resp_4))
@@ -279,7 +281,7 @@ class UserTests(utils.TestCase):
         resp_body = {
             'access': {}
         }
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(resp_body)
         })
@@ -287,12 +289,11 @@ class UserTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request(
+        self.add_request(
             'PATCH',
             urlparse.urljoin(self.TEST_URL, 'v2.0/OS-KSCRUD/users/123'),
             **kwargs).AndReturn((resp))
 
         self.mox.ReplayAll()
 
-        self.client.user_id = '123'
         self.client.users.update_own_password('DCBA', 'ABCD')

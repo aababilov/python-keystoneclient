@@ -16,7 +16,7 @@
 
 import urllib
 
-from keystoneclient import base
+from keystoneclient.openstack.common.apiclient import base
 
 
 class Tenant(base.Resource):
@@ -54,12 +54,12 @@ class Tenant(base.Resource):
         return retval
 
     def add_user(self, user, role):
-        return self.manager.api.roles.add_user_role(base.getid(user),
+        return self.manager.client.roles.add_user_role(base.getid(user),
                                                     base.getid(role),
                                                     self.id)
 
     def remove_user(self, user, role):
-        return self.manager.api.roles.remove_user_role(base.getid(user),
+        return self.manager.client.roles.remove_user_role(base.getid(user),
                                                        base.getid(role),
                                                        self.id)
 
@@ -83,7 +83,7 @@ class TenantManager(base.ManagerWithFind):
                              "description": description,
                              "enabled": enabled}}
 
-        return self._create('/tenants', params, "tenant")
+        return self._post('/tenants', params, "tenant")
 
     def list(self, limit=None, marker=None):
         """
@@ -107,15 +107,7 @@ class TenantManager(base.ManagerWithFind):
         if params:
             query = "?" + urllib.urlencode(params)
 
-        reset = 0
-        if self.api.management_url is None:
-            # special casing to allow tenant lists on the auth_url
-            # for unscoped tokens
-            reset = 1
-            self.api.management_url = self.api.auth_url
         tenant_list = self._list("/tenants%s" % query, "tenants")
-        if reset:
-            self.api.management_url = None
         return tenant_list
 
     def update(self, tenant_id, tenant_name=None, description=None,
@@ -131,7 +123,7 @@ class TenantManager(base.ManagerWithFind):
         if description is not None:
             body['tenant']['description'] = description
         # Keystone's API uses a POST rather than a PUT here.
-        return self._create("/tenants/%s" % tenant_id, body, "tenant")
+        return self._post("/tenants/%s" % tenant_id, body, "tenant")
 
     def delete(self, tenant):
         """
@@ -141,16 +133,16 @@ class TenantManager(base.ManagerWithFind):
 
     def list_users(self, tenant):
         """List users for a tenant."""
-        return self.api.users.list(base.getid(tenant))
+        return self.client.users.list(base.getid(tenant))
 
     def add_user(self, tenant, user, role):
         """Add a user to a tenant with the given role."""
-        return self.api.roles.add_user_role(base.getid(user),
+        return self.client.roles.add_user_role(base.getid(user),
                                             base.getid(role),
                                             base.getid(tenant))
 
     def remove_user(self, tenant, user, role):
         """Remove the specified role from the user on the tenant."""
-        return self.api.roles.remove_user_role(base.getid(user),
+        return self.client.roles.remove_user_role(base.getid(user),
                                                base.getid(role),
                                                base.getid(tenant))

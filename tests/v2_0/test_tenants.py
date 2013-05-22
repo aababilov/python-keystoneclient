@@ -4,7 +4,9 @@ import json
 
 import requests
 
+from keystoneclient.openstack.common.apiclient import client as api_client
 from keystoneclient.openstack.common.apiclient import exceptions
+from keystoneclient.openstack.common.apiclient import fake_client
 from keystoneclient.v2_0 import tenants
 from tests import utils
 
@@ -14,12 +16,12 @@ class TenantTests(utils.TestCase):
         super(TenantTests, self).setUp()
         self.TEST_REQUEST_HEADERS = {
             'X-Auth-Token': 'aToken',
-            'User-Agent': 'python-keystoneclient',
+            'User-Agent': api_client.HTTPClient.user_agent,
         }
         self.TEST_POST_HEADERS = {
             'Content-Type': 'application/json',
             'X-Auth-Token': 'aToken',
-            'User-Agent': 'python-keystoneclient',
+            'User-Agent': api_client.HTTPClient.user_agent,
         }
         self.TEST_TENANTS = {
             "tenants": {
@@ -63,7 +65,7 @@ class TenantTests(utils.TestCase):
                 "description": "Like tenant 9, but better.",
             }
         }
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(resp_body),
         })
@@ -71,7 +73,7 @@ class TenantTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request('POST',
+        self.add_request('POST',
                          urlparse.urljoin(self.TEST_URL, 'v2.0/tenants'),
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -99,7 +101,7 @@ class TenantTests(utils.TestCase):
                 "title": "Conflict",
             }
         }
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 409,
             "text": json.dumps(resp_body),
         })
@@ -107,7 +109,7 @@ class TenantTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request('POST',
+        self.add_request('POST',
                          urlparse.urljoin(self.TEST_URL, 'v2.0/tenants'),
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -120,14 +122,14 @@ class TenantTests(utils.TestCase):
         self.assertRaises(exceptions.Conflict, create_duplicate_tenant)
 
     def test_delete(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": "",
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          urlparse.urljoin(self.TEST_URL, 'v2.0/tenants/1'),
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -135,7 +137,7 @@ class TenantTests(utils.TestCase):
         self.client.tenants.delete(1)
 
     def test_get(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps({
                 'tenant': self.TEST_TENANTS['tenants']['values'][2],
@@ -144,7 +146,7 @@ class TenantTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL, 'v2.0/tenants/1'),
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -155,14 +157,14 @@ class TenantTests(utils.TestCase):
         self.assertEqual(t.name, 'admin')
 
     def test_list(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_TENANTS),
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL, 'v2.0/tenants'),
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -171,14 +173,14 @@ class TenantTests(utils.TestCase):
         [self.assertTrue(isinstance(t, tenants.Tenant)) for t in tenant_list]
 
     def test_list_limit(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_TENANTS),
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants?limit=1'),
                          **kwargs).AndReturn((resp))
@@ -188,14 +190,14 @@ class TenantTests(utils.TestCase):
         [self.assertTrue(isinstance(t, tenants.Tenant)) for t in tenant_list]
 
     def test_list_marker(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_TENANTS),
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants?marker=1'),
                          **kwargs).AndReturn((resp))
@@ -205,14 +207,14 @@ class TenantTests(utils.TestCase):
         [self.assertTrue(isinstance(t, tenants.Tenant)) for t in tenant_list]
 
     def test_list_limit_marker(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_TENANTS),
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants?marker=1&limit=1'),
                          **kwargs).AndReturn((resp))
@@ -238,7 +240,7 @@ class TenantTests(utils.TestCase):
                 "description": "I changed you!",
             },
         }
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(resp_body),
         })
@@ -246,7 +248,7 @@ class TenantTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request('POST',
+        self.add_request('POST',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/4'),
                          **kwargs).AndReturn((resp))
@@ -279,7 +281,7 @@ class TenantTests(utils.TestCase):
                 "description": "",
             },
         }
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(resp_body),
         })
@@ -287,7 +289,7 @@ class TenantTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request('POST',
+        self.add_request('POST',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/4'),
                          **kwargs).AndReturn((resp))
@@ -304,14 +306,14 @@ class TenantTests(utils.TestCase):
         self.assertFalse(tenant.enabled)
 
     def test_add_user(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('PUT',
+        self.add_request('PUT',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/4/users/foo/roles/OS-KSADM/barrr'),
                          **kwargs).AndReturn((resp))
@@ -320,14 +322,14 @@ class TenantTests(utils.TestCase):
         self.client.tenants.add_user('4', 'foo', 'barrr')
 
     def test_remove_user(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/4/users/foo/roles/OS-KSADM/barrr'),
                          **kwargs).AndReturn((resp))
@@ -344,14 +346,14 @@ class TenantTests(utils.TestCase):
                 "enabled": False,
             },
         }
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('PUT',
+        self.add_request('PUT',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/4/users/foo/roles/OS-KSADM/barrr'),
                          **kwargs).AndReturn((resp))
@@ -372,14 +374,14 @@ class TenantTests(utils.TestCase):
                 "enabled": False,
             },
         }
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/4/users/foo/roles/OS-KSADM/barrr'),
                          **kwargs).AndReturn((resp))

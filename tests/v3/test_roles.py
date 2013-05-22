@@ -21,6 +21,8 @@ import uuid
 import requests
 
 from keystoneclient.openstack.common.apiclient import exceptions
+from keystoneclient.openstack.common.apiclient import fake_client
+
 from keystoneclient.v3 import roles
 from tests.v3 import utils
 
@@ -43,7 +45,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         user_id = uuid.uuid4().hex
         domain_id = uuid.uuid4().hex
         ref = self.new_ref()
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 201,
             "text": '',
         })
@@ -51,7 +53,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'PUT'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -66,7 +68,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         group_id = uuid.uuid4().hex
         domain_id = uuid.uuid4().hex
         ref = self.new_ref()
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 201,
             "text": '',
         })
@@ -74,7 +76,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'PUT'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -89,7 +91,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         user_id = uuid.uuid4().hex
         domain_id = uuid.uuid4().hex
         ref_list = [self.new_ref(), self.new_ref()]
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": self.serialize(ref_list),
         })
@@ -97,7 +99,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'GET'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -112,7 +114,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         group_id = uuid.uuid4().hex
         domain_id = uuid.uuid4().hex
         ref_list = [self.new_ref(), self.new_ref()]
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": self.serialize(ref_list),
         })
@@ -120,7 +122,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'GET'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -135,7 +137,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         user_id = uuid.uuid4().hex
         domain_id = uuid.uuid4().hex
         ref = self.new_ref()
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
@@ -143,7 +145,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'HEAD'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -160,7 +162,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         group_id = uuid.uuid4().hex
         domain_id = uuid.uuid4().hex
         ref = self.new_ref()
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
@@ -168,7 +170,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'HEAD'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -183,7 +185,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         user_id = uuid.uuid4().hex
         domain_id = uuid.uuid4().hex
         ref = self.new_ref()
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
@@ -191,7 +193,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'DELETE'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -206,7 +208,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         group_id = uuid.uuid4().hex
         domain_id = uuid.uuid4().hex
         ref = self.new_ref()
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
@@ -214,7 +216,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'DELETE'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -229,7 +231,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         user_id = uuid.uuid4().hex
         project_id = uuid.uuid4().hex
         ref = self.new_ref()
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 201,
             "text": '',
         })
@@ -237,7 +239,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'PUT'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -252,7 +254,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         group_id = uuid.uuid4().hex
         project_id = uuid.uuid4().hex
         ref = self.new_ref()
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 201,
             "text": '',
         })
@@ -260,7 +262,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'PUT'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -275,7 +277,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         user_id = uuid.uuid4().hex
         project_id = uuid.uuid4().hex
         ref_list = [self.new_ref(), self.new_ref()]
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": self.serialize(ref_list),
         })
@@ -283,7 +285,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'GET'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -298,7 +300,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         group_id = uuid.uuid4().hex
         project_id = uuid.uuid4().hex
         ref_list = [self.new_ref(), self.new_ref()]
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": self.serialize(ref_list),
         })
@@ -306,7 +308,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'GET'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -321,7 +323,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         user_id = uuid.uuid4().hex
         project_id = uuid.uuid4().hex
         ref = self.new_ref()
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": '',
         })
@@ -329,7 +331,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'HEAD'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -344,7 +346,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         group_id = uuid.uuid4().hex
         project_id = uuid.uuid4().hex
         ref = self.new_ref()
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": '',
         })
@@ -352,7 +354,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'HEAD'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -367,7 +369,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         user_id = uuid.uuid4().hex
         project_id = uuid.uuid4().hex
         ref = self.new_ref()
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
@@ -375,7 +377,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'DELETE'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -390,7 +392,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         group_id = uuid.uuid4().hex
         project_id = uuid.uuid4().hex
         ref = self.new_ref()
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
@@ -398,7 +400,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'DELETE'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,

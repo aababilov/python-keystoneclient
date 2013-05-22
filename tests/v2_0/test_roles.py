@@ -5,6 +5,8 @@ import json
 import requests
 
 from keystoneclient.v2_0 import roles
+from keystoneclient.openstack.common.apiclient import client as api_client
+from keystoneclient.openstack.common.apiclient import fake_client
 from tests import utils
 
 
@@ -13,12 +15,12 @@ class RoleTests(utils.TestCase):
         super(RoleTests, self).setUp()
         self.TEST_REQUEST_HEADERS = {
             'X-Auth-Token': 'aToken',
-            'User-Agent': 'python-keystoneclient',
+            'User-Agent': api_client.HTTPClient.user_agent,
         }
         self.TEST_POST_HEADERS = {
             'Content-Type': 'application/json',
             'X-Auth-Token': 'aToken',
-            'User-Agent': 'python-keystoneclient',
+            'User-Agent': api_client.HTTPClient.user_agent,
         }
         self.TEST_ROLES = {
             "roles": {
@@ -47,7 +49,7 @@ class RoleTests(utils.TestCase):
                 "id": 3,
             }
         }
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(resp_body),
         })
@@ -55,7 +57,7 @@ class RoleTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request('POST',
+        self.add_request('POST',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/OS-KSADM/roles'),
                          **kwargs).AndReturn((resp))
@@ -67,14 +69,14 @@ class RoleTests(utils.TestCase):
         self.assertEqual(role.name, req_body['role']['name'])
 
     def test_delete(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": "",
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/OS-KSADM/roles/1'),
                          **kwargs).AndReturn((resp))
@@ -83,7 +85,7 @@ class RoleTests(utils.TestCase):
         self.client.roles.delete(1)
 
     def test_get(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps({
                 'role': self.TEST_ROLES['roles']['values'][0],
@@ -92,7 +94,7 @@ class RoleTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/OS-KSADM/roles/1'),
                          **kwargs).AndReturn((resp))
@@ -104,14 +106,14 @@ class RoleTests(utils.TestCase):
         self.assertEqual(role.name, 'admin')
 
     def test_list(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_ROLES),
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/OS-KSADM/roles'),
                          **kwargs).AndReturn((resp))
@@ -121,14 +123,14 @@ class RoleTests(utils.TestCase):
         [self.assertTrue(isinstance(r, roles.Role)) for r in role_list]
 
     def test_roles_for_user(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_ROLES),
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/users/foo/roles'),
                          **kwargs).AndReturn((resp))
@@ -138,14 +140,14 @@ class RoleTests(utils.TestCase):
         [self.assertTrue(isinstance(r, roles.Role)) for r in role_list]
 
     def test_roles_for_user_tenant(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_ROLES),
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/barrr/users/foo/roles'),
                          **kwargs).AndReturn((resp))
@@ -155,14 +157,14 @@ class RoleTests(utils.TestCase):
         [self.assertTrue(isinstance(r, roles.Role)) for r in role_list]
 
     def test_add_user_role(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('PUT',
+        self.add_request('PUT',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/users/foo/roles/OS-KSADM/barrr'),
                          **kwargs).AndReturn((resp))
@@ -171,14 +173,14 @@ class RoleTests(utils.TestCase):
         self.client.roles.add_user_role('foo', 'barrr')
 
     def test_add_user_role_tenant(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('PUT',
+        self.add_request('PUT',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/4/users/foo/roles/OS-KSADM/barrr'),
                          **kwargs).AndReturn((resp))
@@ -187,14 +189,14 @@ class RoleTests(utils.TestCase):
         self.client.roles.add_user_role('foo', 'barrr', '4')
 
     def test_remove_user_role(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/users/foo/roles/OS-KSADM/barrr'),
                          **kwargs).AndReturn((resp))
@@ -203,14 +205,14 @@ class RoleTests(utils.TestCase):
         self.client.roles.remove_user_role('foo', 'barrr')
 
     def test_remove_user_role_tenant(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/4/users/foo/roles/OS-KSADM/barrr'),
                          **kwargs).AndReturn((resp))

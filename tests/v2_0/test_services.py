@@ -5,6 +5,8 @@ import json
 import requests
 
 from keystoneclient.v2_0 import services
+from keystoneclient.openstack.common.apiclient import client as api_client
+from keystoneclient.openstack.common.apiclient import fake_client
 from tests import utils
 
 
@@ -13,12 +15,12 @@ class ServiceTests(utils.TestCase):
         super(ServiceTests, self).setUp()
         self.TEST_REQUEST_HEADERS = {
             'X-Auth-Token': 'aToken',
-            'User-Agent': 'python-keystoneclient',
+            'User-Agent': api_client.HTTPClient.user_agent,
         }
         self.TEST_POST_HEADERS = {
             'Content-Type': 'application/json',
             'X-Auth-Token': 'aToken',
-            'User-Agent': 'python-keystoneclient',
+            'User-Agent': api_client.HTTPClient.user_agent,
         }
         self.TEST_SERVICES = {
             "OS-KSADM:services": {
@@ -55,7 +57,7 @@ class ServiceTests(utils.TestCase):
                 "id": 3,
             }
         }
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(resp_body),
         })
@@ -63,7 +65,7 @@ class ServiceTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request('POST',
+        self.add_request('POST',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/OS-KSADM/services'),
                          **kwargs).AndReturn((resp))
@@ -78,14 +80,14 @@ class ServiceTests(utils.TestCase):
         self.assertEqual(service.name, req_body['OS-KSADM:service']['name'])
 
     def test_delete(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": "",
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/OS-KSADM/services/1'),
                          **kwargs).AndReturn((resp))
@@ -95,14 +97,14 @@ class ServiceTests(utils.TestCase):
 
     def test_get(self):
         test_services = self.TEST_SERVICES['OS-KSADM:services']['values'][0]
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps({'OS-KSADM:service': test_services}),
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/OS-KSADM/services/1'),
                          **kwargs).AndReturn((resp))
@@ -115,14 +117,14 @@ class ServiceTests(utils.TestCase):
         self.assertEqual(service.type, 'compute')
 
     def test_list(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_SERVICES),
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/OS-KSADM/services'),
                          **kwargs).AndReturn((resp))

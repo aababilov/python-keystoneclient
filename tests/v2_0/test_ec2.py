@@ -5,6 +5,8 @@ import json
 import requests
 
 from keystoneclient.v2_0 import ec2
+from keystoneclient.openstack.common.apiclient import client as api_client
+from keystoneclient.openstack.common.apiclient import fake_client
 from tests import utils
 
 
@@ -13,12 +15,12 @@ class EC2Tests(utils.TestCase):
         super(EC2Tests, self).setUp()
         self.TEST_REQUEST_HEADERS = {
             'X-Auth-Token': 'aToken',
-            'User-Agent': 'python-keystoneclient',
+            'User-Agent': api_client.HTTPClient.user_agent,
         }
         self.TEST_POST_HEADERS = {
             'Content-Type': 'application/json',
             'X-Auth-Token': 'aToken',
-            'User-Agent': 'python-keystoneclient',
+            'User-Agent': api_client.HTTPClient.user_agent,
         }
 
     def test_create(self):
@@ -36,7 +38,7 @@ class EC2Tests(utils.TestCase):
                 "enabled": True,
             }
         }
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(resp_body),
         })
@@ -46,7 +48,7 @@ class EC2Tests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request('POST',
+        self.add_request('POST',
                          url,
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -70,7 +72,7 @@ class EC2Tests(utils.TestCase):
                 "enabled": True,
             }
         }
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(resp_body),
         })
@@ -80,7 +82,7 @@ class EC2Tests(utils.TestCase):
                                (user_id, 'access'))
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          url,
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -116,7 +118,7 @@ class EC2Tests(utils.TestCase):
             }
         }
 
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(resp_body),
         })
@@ -125,7 +127,7 @@ class EC2Tests(utils.TestCase):
                                'v2.0/users/%s/credentials/OS-EC2' % user_id)
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          url,
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -142,7 +144,7 @@ class EC2Tests(utils.TestCase):
     def test_delete(self):
         user_id = 'usr'
         access = 'access'
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": "",
         })
@@ -152,7 +154,7 @@ class EC2Tests(utils.TestCase):
                                (user_id, access))
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          url,
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()

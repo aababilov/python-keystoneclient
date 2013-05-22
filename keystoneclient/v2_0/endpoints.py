@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from keystoneclient import base
+from keystoneclient.openstack.common.apiclient import base
 
 
 class Endpoint(base.Resource):
@@ -38,7 +38,7 @@ class EndpointManager(base.ManagerWithFind):
                              'publicurl': publicurl,
                              'adminurl': adminurl,
                              'internalurl': internalurl}}
-        return self._create('/endpoints', body, 'endpoint')
+        return self._post('/endpoints', body, 'endpoint')
 
     def delete(self, id):
         """Delete an endpoint."""

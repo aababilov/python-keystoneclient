@@ -15,55 +15,16 @@
 
 import urlparse
 
-from tests import fakes
+from keystoneclient.openstack.common.apiclient import fake_client
 from tests import utils
 
 
-class FakeHTTPClient(fakes.FakeClient):
-    def __init__(self, **kwargs):
-        self.username = 'username'
-        self.password = 'password'
-        self.auth_url = 'auth_url'
-        self.callstack = []
+class FakeHTTPClient(fake_client.FakeHTTPClient):
+    username = 'username'
 
-    def _cs_request(self, url, method, **kwargs):
-        # Check that certain things are called correctly
-        if method in ['GET', 'DELETE']:
-            assert 'body' not in kwargs
-        elif method == 'PUT':
-            kwargs.setdefault('body', None)
-
-        # Call the method
-        args = urlparse.parse_qsl(urlparse.urlparse(url)[4])
-        kwargs.update(args)
-        munged_url = url.rsplit('?', 1)[0]
-        munged_url = munged_url.strip('/').replace('/', '_').replace('.', '_')
-        munged_url = munged_url.replace('-', '_')
-
-        callback = "%s_%s" % (method.lower(), munged_url)
-
-        if not hasattr(self, callback):
-            raise AssertionError('Called unknown API method: %s %s, '
-                                 'expected fakes method name: %s' %
-                                 (method, url, callback))
-
-        # Note the call
-        self.callstack.append((method, url, kwargs.get('body', None)))
-
-        if not hasattr(self, callback):
-            raise AssertionError('Called unknown API method: %s %s, '
-                                 'expected fakes method name: %s' %
-                                 (method, url, callback))
-
-        # Note the call
-        self.callstack.append((method, url, kwargs.get('body', None)))
-
-        status, body = getattr(self, callback)(**kwargs)
-        r = utils.TestResponse({
-            "status_code": status,
-            "text": body})
-        return r, body
-
+    def __init__(self, *args, **kwargs):
+        super(FakeHTTPClient, self).__init__(*args, **kwargs)
+        self.auth_response = self.post_tokens()[1][0]
     #
     # List all extensions
     #
@@ -466,7 +427,7 @@ class FakeHTTPClient(fakes.FakeClient):
         return (200, body)
 
     def patch_OS_KSCRUD_users_1(self, **kw):
-        body = {}
+        body = {"access": {}}
         return (200, body)
 
     def get_endpoints(self, **kw):

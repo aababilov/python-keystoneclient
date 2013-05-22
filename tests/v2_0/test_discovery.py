@@ -3,6 +3,8 @@ import json
 import requests
 
 from keystoneclient.generic import client
+from keystoneclient.openstack.common.apiclient import client as api_client
+from keystoneclient.openstack.common.apiclient import fake_client
 from tests import utils
 
 
@@ -42,24 +44,24 @@ class DiscoverKeystoneTests(utils.UnauthenticatedTestCase):
             },
         }
         self.TEST_REQUEST_HEADERS = {
-            'User-Agent': 'python-keystoneclient',
+            'User-Agent': api_client.HTTPClient.user_agent,
             'Accept': 'application/json',
         }
 
     def test_get_versions(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_RESPONSE_DICT),
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          self.TEST_ROOT_URL,
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
 
-        cs = client.Client()
+        cs = client.Client(self.http_client)
         versions = cs.discover(self.TEST_ROOT_URL)
         self.assertIsInstance(versions, dict)
         self.assertIn('message', versions)
@@ -70,18 +72,18 @@ class DiscoverKeystoneTests(utils.UnauthenticatedTestCase):
             ['href'])
 
     def test_get_version_local(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_RESPONSE_DICT),
         })
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          "http://localhost:35357",
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
 
-        cs = client.Client()
+        cs = client.Client(self.http_client)
         versions = cs.discover()
         self.assertIsInstance(versions, dict)
         self.assertIn('message', versions)

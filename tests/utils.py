@@ -5,6 +5,8 @@ import mox
 import requests
 import testtools
 
+from keystoneclient.openstack.common.apiclient import client as api_client
+from keystoneclient.auth import keystone
 from keystoneclient.v2_0 import client
 
 
@@ -15,6 +17,7 @@ class TestCase(testtools.TestCase):
     TEST_TENANT_NAME = 'aTenant'
     TEST_TOKEN = 'aToken'
     TEST_USER = 'test'
+    TEST_USER_ID = '123'
     TEST_ROOT_URL = 'http://127.0.0.1:5000/'
     TEST_URL = '%s%s' % (TEST_ROOT_URL, 'v2.0')
     TEST_ROOT_ADMIN_URL = 'http://127.0.0.1:35357/'
@@ -72,18 +75,32 @@ class TestCase(testtools.TestCase):
 
     def setUp(self):
         super(TestCase, self).setUp()
+
+        auth_plugin = keystone. KeystoneV2AuthPlugin(
+            username=self.TEST_USER,
+            token=self.TEST_TOKEN,
+            tenant_name=self.TEST_TENANT_NAME,
+            auth_url=self.TEST_URL)
+        self.http_client = api_client.HTTPClient(auth_plugin=auth_plugin)
+        self.http_client.endpoint = self.TEST_URL
+        self.http_client.token = self.TEST_TOKEN
+        self.http_client.auth_response = {
+            "access": {
+                "user": {
+                    "name": self.TEST_USER,
+                    "id": self.TEST_USER_ID,
+                },
+            },
+        }
+        self.client = client.Client(http_client=self.http_client)
+
         self.mox = mox.Mox()
-        self.request_patcher = mock.patch.object(requests, 'request',
+        self.request_patcher = mock.patch.object(self.http_client.http, 'request',
                                                  self.mox.CreateMockAnything())
         self.time_patcher = mock.patch.object(time, 'time',
                                               lambda: 1234)
         self.request_patcher.start()
         self.time_patcher.start()
-        self.client = client.Client(username=self.TEST_USER,
-                                    token=self.TEST_TOKEN,
-                                    tenant_name=self.TEST_TENANT_NAME,
-                                    auth_url=self.TEST_URL,
-                                    endpoint=self.TEST_URL)
 
     def tearDown(self):
         self.request_patcher.stop()
@@ -91,6 +108,9 @@ class TestCase(testtools.TestCase):
         self.mox.UnsetStubs()
         self.mox.VerifyAll()
         super(TestCase, self).tearDown()
+
+    def add_request(self, *args, **kwargs):
+        return self.http_client.http.request(*args, **kwargs)
 
 
 class UnauthenticatedTestCase(testtools.TestCase):
@@ -105,8 +125,9 @@ class UnauthenticatedTestCase(testtools.TestCase):
 
     def setUp(self):
         super(UnauthenticatedTestCase, self).setUp()
+        self.http_client = api_client.HTTPClient(auth_plugin=None)
         self.mox = mox.Mox()
-        self.request_patcher = mock.patch.object(requests, 'request',
+        self.request_patcher = mock.patch.object(self.http_client.http, 'request',
                                                  self.mox.CreateMockAnything())
         self.time_patcher = mock.patch.object(time, 'time',
                                               lambda: 1234)
@@ -120,26 +141,5 @@ class UnauthenticatedTestCase(testtools.TestCase):
         self.mox.VerifyAll()
         super(UnauthenticatedTestCase, self).tearDown()
 
-
-class TestResponse(requests.Response):
-    """Class used to wrap requests.Response and provide some
-       convenience to initialize with a dict.
-    """
-
-    def __init__(self, data):
-        self._text = None
-        super(TestResponse, self)
-        if isinstance(data, dict):
-            self.status_code = data.get('status_code', None)
-            self.headers = data.get('headers') or {}
-            # Fake the text attribute to streamline Response creation
-            self._text = data.get('text', None)
-        else:
-            self.status_code = data
-
-    def __eq__(self, other):
-        return self.__dict__ == other.__dict__
-
-    @property
-    def text(self):
-        return self._text
+    def add_request(self, *args, **kwargs):
+        return self.http_client.http.request(*args, **kwargs)

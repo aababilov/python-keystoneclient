@@ -20,6 +20,8 @@ import uuid
 
 import requests
 
+from keystoneclient.openstack.common.apiclient import fake_client
+
 from keystoneclient.v3 import groups
 from tests.v3 import utils
 
@@ -41,7 +43,7 @@ class GroupTests(utils.TestCase, utils.CrudTests):
     def test_list_groups_for_user(self):
         user_id = uuid.uuid4().hex
         ref_list = [self.new_ref(), self.new_ref()]
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": self.serialize(ref_list),
         })
@@ -49,7 +51,7 @@ class GroupTests(utils.TestCase, utils.CrudTests):
         method = 'GET'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -66,7 +68,7 @@ class GroupTests(utils.TestCase, utils.CrudTests):
         ref_list = [self.new_ref(), self.new_ref()]
 
         domain_id = uuid.uuid4().hex
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": self.serialize(ref_list),
         })
@@ -74,7 +76,7 @@ class GroupTests(utils.TestCase, utils.CrudTests):
         method = 'GET'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,

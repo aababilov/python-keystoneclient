@@ -13,6 +13,7 @@ from testtools import matchers
 from keystoneclient.openstack.common.apiclient import exceptions
 from keystoneclient import shell as openstack_shell
 from keystoneclient.v2_0 import shell as shell_v2_0
+from keystoneclient.openstack.common.apiclient import fake_client
 from tests import utils
 
 DEFAULT_USERNAME = 'username'
@@ -98,31 +99,36 @@ class ShellTest(utils.TestCase):
 
     def test_auth_no_credentials(self):
         with testtools.ExpectedException(
-                exceptions.CommandError, 'Expecting'):
+                exceptions.CommandError, 'Authentication failed. Missing'):
             self.shell('user-list')
 
     def test_auth_password_authurl_no_username(self):
         with testtools.ExpectedException(
                 exceptions.CommandError,
-                'Expecting a username provided via either'):
-            self.shell('--os-password=%s --os-auth-url=%s user-list'
+                'Authentication failed. Missing options.*username'):
+            self.shell('--os-auth-system=keystone --os-password=%s'
+                       ' --os-auth-url=%s user-list'
                        % (uuid.uuid4().hex, uuid.uuid4().hex))
 
     def test_auth_username_password_no_authurl(self):
         with testtools.ExpectedException(
-                exceptions.CommandError, 'Expecting an auth URL via either'):
-            self.shell('--os-password=%s --os-username=%s user-list'
+                exceptions.CommandError,
+                'Authentication failed. Missing options.*auth_url'):
+            self.shell('--os-auth-system=keystone --os-password=%s'
+                       ' --os-username=%s user-list'
                        % (uuid.uuid4().hex, uuid.uuid4().hex))
 
     def test_token_no_endpoint(self):
         with testtools.ExpectedException(
-                exceptions.CommandError, 'Expecting an endpoint provided'):
-            self.shell('--token=%s user-list' % uuid.uuid4().hex)
+                exceptions.CommandError, 'Authentication failed. Missing .*endpoint'):
+            self.shell('--os-auth-system=endpoint-token '
+                       '--os-token=%s user-list' % uuid.uuid4().hex)
 
     def test_endpoint_no_token(self):
         with testtools.ExpectedException(
-                exceptions.CommandError, 'Expecting a token provided'):
-            self.shell('--endpoint=http://10.0.0.1:5000/v2.0/ user-list')
+                exceptions.CommandError, 'Authentication failed. Missing .*token'):
+            self.shell('--os-auth-system=endpoint-token'
+                       ' --os-endpoint=http://10.0.0.1:5000/v2.0/ user-list')
 
     def test_shell_args(self):
         do_tenant_mock = mock.MagicMock()
@@ -407,11 +413,11 @@ class ShellTest(utils.TestCase):
             'endpoints': [],
         })
         request_mock = mock.MagicMock(return_value=response_mock)
-        with mock.patch('requests.request', request_mock):
-            shell(('--timeout 2 --os-token=blah  --os-endpoint=blah'
+        with mock.patch('requests.Session.request', request_mock):
+            shell(('--timeout 2 --os-auth-system=endpoint-token --os-token=blah  --os-endpoint=blah'
                    ' --os-auth-url=blah.com endpoint-list'))
             request_mock.assert_called_with(mock.ANY, mock.ANY,
-                                            timeout=2,
+                                            timeout=2.0,
                                             headers=mock.ANY,
                                             verify=mock.ANY)
 

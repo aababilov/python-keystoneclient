@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from keystoneclient import base
+from keystoneclient.openstack.common.apiclient import base
 
 
 class EC2(base.Resource):
@@ -35,7 +35,7 @@ class CredentialsManager(base.ManagerWithFind):
 
         params = {'tenant_id': tenant_id}
 
-        return self._create('/users/%s/credentials/OS-EC2' % user_id,
+        return self._post('/users/%s/credentials/OS-EC2' % user_id,
                             params, "credential")
 
     def list(self, user_id):

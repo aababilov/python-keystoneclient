@@ -32,7 +32,7 @@ def require_service_catalog(f):
            'instead of --os-endpoint or OS_SERVICE_ENDPOINT, for example.')
 
     def wrapped(kc, args):
-        if not kc.has_service_catalog():
+        if not kc.http_client.auth_response:
             raise Exception(msg)
         return f(kc, args)
 
@@ -350,7 +350,7 @@ def do_user_role_list(kc, args):
         tenant_id = args.tenant_id
     else:
         # use the authenticated tenant id as a default
-        tenant_id = kc.auth_tenant_id
+        tenant_id = kc.http_client.auth_response.tenant_id
 
     if args.user:
         user_id = utils.find_resource(kc.users, args.user).id
@@ -358,7 +358,7 @@ def do_user_role_list(kc, args):
         user_id = args.user_id
     else:
         # use the authenticated user id as a default
-        user_id = kc.auth_user_id
+        user_id = kc.http_client.auth_response.user_id
     roles = kc.roles.roles_for_user(user=user_id, tenant=tenant_id)
 
     # this makes the command output a bit more intuitive
@@ -378,10 +378,10 @@ def do_ec2_credentials_create(kc, args):
     """Create EC2-compatible credentials for user per tenant."""
     if not args.tenant_id:
         # use the authenticated tenant id as a default
-        args.tenant_id = kc.auth_tenant_id
+        args.tenant_id = kc.http_client.auth_response.tenant_id
     if not args.user_id:
         # use the authenticated user id as a default
-        args.user_id = kc.auth_user_id
+        args.user_id = kc.http_client.auth_response.user_id
     credentials = kc.ec2.create(args.user_id, args.tenant_id)
     utils.print_dict(credentials._info)
 
@@ -394,7 +394,7 @@ def do_ec2_credentials_get(kc, args):
     """Display EC2-compatible credentials."""
     if not args.user_id:
         # use the authenticated user id as a default
-        args.user_id = kc.auth_user_id
+        args.user_id = kc.http_client.auth_response.user_id
     cred = kc.ec2.get(args.user_id, args.access)
     if cred:
         utils.print_dict(cred._info)
@@ -406,7 +406,7 @@ def do_ec2_credentials_list(kc, args):
     """List EC2-compatible credentials for a user"""
     if not args.user_id:
         # use the authenticated user id as a default
-        args.user_id = kc.auth_user_id
+        args.user_id = kc.http_client.auth_response.user_id
     credentials = kc.ec2.list(args.user_id)
     for cred in credentials:
         try:
@@ -426,7 +426,7 @@ def do_ec2_credentials_delete(kc, args):
     """Delete EC2-compatible credentials."""
     if not args.user_id:
         # use the authenticated user id as a default
-        args.user_id = kc.auth_user_id
+        args.user_id = kc.http_client.auth_response.user_id
     try:
         kc.ec2.delete(args.user_id, args.access)
         print('Credential has been deleted.')
@@ -439,8 +439,11 @@ def do_ec2_credentials_delete(kc, args):
 @require_service_catalog
 def do_catalog(kc, args):
     """List service catalog, possibly filtered by service."""
-    endpoints = kc.service_catalog.get_endpoints(service_type=args.service)
-    for (service, service_endpoints) in endpoints.iteritems():
+    sc = {}
+    for endpoint in kc.http_client.auth_response.filter_endpoints(
+            service_type=args.service):
+        sc.setdefault(endpoint["serviceType"], []).append(endpoint)
+    for (service, service_endpoints) in sc.iteritems():
         if len(service_endpoints) > 0:
             print("Service: %s" % service)
             for ep in service_endpoints:

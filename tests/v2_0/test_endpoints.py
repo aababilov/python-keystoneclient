@@ -5,6 +5,8 @@ import json
 import requests
 
 from keystoneclient.v2_0 import endpoints
+from keystoneclient.openstack.common.apiclient import client as api_client
+from keystoneclient.openstack.common.apiclient import fake_client
 from tests import utils
 
 
@@ -13,12 +15,12 @@ class EndpointTests(utils.TestCase):
         super(EndpointTests, self).setUp()
         self.TEST_REQUEST_HEADERS = {
             'X-Auth-Token': 'aToken',
-            'User-Agent': 'python-keystoneclient',
+            'User-Agent': api_client.HTTPClient.user_agent,
         }
         self.TEST_POST_HEADERS = {
             'Content-Type': 'application/json',
             'X-Auth-Token': 'aToken',
-            'User-Agent': 'python-keystoneclient',
+            'User-Agent': api_client.HTTPClient.user_agent,
         }
         self.TEST_ENDPOINTS = {
             'endpoints': [
@@ -60,7 +62,7 @@ class EndpointTests(utils.TestCase):
             }
         }
 
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(resp_body),
         })
@@ -68,7 +70,7 @@ class EndpointTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request('POST',
+        self.add_request('POST',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/endpoints'),
                          **kwargs).AndReturn((resp))
@@ -84,13 +86,13 @@ class EndpointTests(utils.TestCase):
         self.assertTrue(isinstance(endpoint, endpoints.Endpoint))
 
     def test_delete(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": "",
         })
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/endpoints/8f953'),
                          **kwargs).AndReturn((resp))
@@ -99,14 +101,14 @@ class EndpointTests(utils.TestCase):
         self.client.endpoints.delete('8f953')
 
     def test_list(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_ENDPOINTS),
         })
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/endpoints'),
                          **kwargs).AndReturn((resp))

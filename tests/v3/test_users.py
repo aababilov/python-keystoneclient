@@ -20,6 +20,8 @@ import uuid
 
 import requests
 
+from keystoneclient.openstack.common.apiclient import fake_client
+
 from keystoneclient.v3 import users
 from tests.v3 import utils
 
@@ -45,7 +47,7 @@ class UserTests(utils.TestCase, utils.CrudTests):
     def test_add_user_to_group(self):
         group_id = uuid.uuid4().hex
         ref = self.new_ref()
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
@@ -53,7 +55,7 @@ class UserTests(utils.TestCase, utils.CrudTests):
         method = 'PUT'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -67,7 +69,7 @@ class UserTests(utils.TestCase, utils.CrudTests):
     def test_list_users_in_group(self):
         group_id = uuid.uuid4().hex
         ref_list = [self.new_ref(), self.new_ref()]
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": self.serialize(ref_list),
         })
@@ -75,7 +77,7 @@ class UserTests(utils.TestCase, utils.CrudTests):
         method = 'GET'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -91,7 +93,7 @@ class UserTests(utils.TestCase, utils.CrudTests):
     def test_check_user_in_group(self):
         group_id = uuid.uuid4().hex
         ref = self.new_ref()
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
@@ -99,7 +101,7 @@ class UserTests(utils.TestCase, utils.CrudTests):
         method = 'HEAD'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -113,7 +115,7 @@ class UserTests(utils.TestCase, utils.CrudTests):
     def test_remove_user_from_group(self):
         group_id = uuid.uuid4().hex
         ref = self.new_ref()
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 204,
             "text": '',
         })
@@ -121,7 +123,7 @@ class UserTests(utils.TestCase, utils.CrudTests):
         method = 'DELETE'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
