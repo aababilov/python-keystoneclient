@@ -10,7 +10,7 @@ import mock
 import testtools
 from testtools import matchers
 
-from keystoneclient import exceptions
+from keystoneclient.openstack.common.apiclient import exceptions
 from keystoneclient import shell as openstack_shell
 from keystoneclient.v2_0 import shell as shell_v2_0
 from tests import utils

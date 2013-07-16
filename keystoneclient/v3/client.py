@@ -15,7 +15,7 @@
 import json
 import logging
 
-from keystoneclient import exceptions
+from keystoneclient.openstack.common.apiclient import exceptions
 from keystoneclient.v2_0 import client
 from keystoneclient.v3 import credentials
 from keystoneclient.v3 import domains

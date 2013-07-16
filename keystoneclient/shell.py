@@ -28,7 +28,7 @@ import sys
 import keystoneclient
 
 from keystoneclient import access
-from keystoneclient import exceptions as exc
+from keystoneclient.openstack.common.apiclient import exceptions as exc
 from keystoneclient import utils
 from keystoneclient.v2_0 import shell as shell_v2_0
 from keystoneclient.generic import shell as shell_generic

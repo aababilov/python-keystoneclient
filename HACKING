@@ -46,7 +46,7 @@ Human Alphabetical Order Examples
 
   import httplib2
 
-  from keystoneclient import exceptions
+  from keystoneclient.openstack.common.apiclient import exceptions
   from keystoneclient import service_catalog
   from keystoneclient.v2_0 import client
 

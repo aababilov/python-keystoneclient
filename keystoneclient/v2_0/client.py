@@ -15,7 +15,7 @@
 import logging
 
 from keystoneclient import client
-from keystoneclient import exceptions
+from keystoneclient.openstack.common.apiclient import exceptions
 from keystoneclient.v2_0 import ec2
 from keystoneclient.v2_0 import endpoints
 from keystoneclient.v2_0 import roles

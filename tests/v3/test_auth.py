@@ -2,7 +2,7 @@ import copy
 import json
 import requests
 
-from keystoneclient import exceptions
+from keystoneclient.openstack.common.apiclient import exceptions
 from keystoneclient.v3 import client
 
 from tests.v3 import utils

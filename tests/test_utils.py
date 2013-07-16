@@ -1,4 +1,4 @@
-from keystoneclient import exceptions
+from keystoneclient.openstack.common.apiclient import exceptions
 from keystoneclient import utils
 from tests import utils as test_utils
 

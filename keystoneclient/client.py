@@ -33,7 +33,7 @@ if not hasattr(urlparse, 'parse_qsl'):
 
 
 from keystoneclient import access
-from keystoneclient import exceptions
+from keystoneclient.openstack.common.apiclient import exceptions
 
 
 _logger = logging.getLogger(__name__)
@@ -552,7 +552,7 @@ class HTTPClient(object):
             _logger.debug(
                 "Request returned failure status: %s",
                 resp.status_code)
-            raise exceptions.from_response(resp, body or resp.text)
+            raise exceptions.from_response(resp, method, url)
         elif resp.status_code in (301, 302, 305):
             # Redirected. Reissue the request to the new location.
             return self.request(resp.headers['location'], method, **kwargs)

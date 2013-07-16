@@ -4,7 +4,7 @@ import mock
 import requests
 
 from keystoneclient import client
-from keystoneclient import exceptions
+from keystoneclient.openstack.common.apiclient import exceptions
 from tests import utils
 
 
@@ -86,7 +86,7 @@ class ClientTest(utils.TestCase):
                 cl.get('/hi')
             except exceptions.BadRequest as exc:
                 exc_raised = True
-                self.assertEqual(exc.message, "Error message string")
+                self.assertEqual(exc.message, "Bad Request")
             self.assertTrue(exc_raised, 'Exception not raised.')
 
     def test_post(self):

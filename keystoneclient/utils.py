@@ -5,7 +5,7 @@ import uuid
 
 import prettytable
 
-from keystoneclient import exceptions
+from keystoneclient.openstack.common.apiclient import exceptions
 
 
 # Decorator for cli-args

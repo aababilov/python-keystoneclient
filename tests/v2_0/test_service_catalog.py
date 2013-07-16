@@ -1,5 +1,5 @@
 from keystoneclient import access
-from keystoneclient import exceptions
+from keystoneclient.openstack.common.apiclient import exceptions
 
 from tests import utils
 from tests.v2_0 import client_fixtures

@@ -19,7 +19,7 @@ import logging
 import urlparse
 
 from keystoneclient import client
-from keystoneclient import exceptions
+from keystoneclient.openstack.common.apiclient import exceptions
 
 _logger = logging.getLogger(__name__)
 

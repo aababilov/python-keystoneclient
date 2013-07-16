@@ -15,7 +15,7 @@
 #    under the License.
 
 from keystoneclient import base
-from keystoneclient import exceptions
+from keystoneclient.openstack.common.apiclient import exceptions
 
 
 class Role(base.Resource):

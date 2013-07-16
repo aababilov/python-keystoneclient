@@ -31,7 +31,7 @@ tasks are provided below.
 
 You can generally expect that when the client needs to propogate an exception
 it will raise an instance of subclass of
-``keystoneclient.exceptions.ClientException``
+``keystoneclient.openstack.common.apiclient.exceptions.ClientException``
 
 Authenticating
 ==============
