@@ -60,9 +60,7 @@ class FakeClient(object):
 
     def authenticate(self, cl_obj):
         cl_obj.user_id = '1'
-        cl_obj.auth_user_id = '1'
         cl_obj.project_id = '1'
-        cl_obj.auth_tenant_id = '1'
         cl_obj.auth_ref = access.AccessInfo.factory(None, {
             "access": {
                 "token": {

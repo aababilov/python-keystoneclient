@@ -14,7 +14,6 @@
 #    under the License.
 import logging
 
-from keystoneclient import exceptions
 from keystoneclient import httpclient
 from keystoneclient.v2_0 import ec2
 from keystoneclient.v2_0 import endpoints
@@ -123,8 +122,7 @@ class Client(httpclient.HTTPClient):
 
     def __init__(self, **kwargs):
         """Initialize a new client for the Keystone v2.0 API."""
-        super(Client, self).__init__(**kwargs)
-        self.version = 'v2.0'
+        super(Client, self).__init__(version='v2.0', **kwargs)
         self.endpoints = endpoints.EndpointManager(self)
         self.roles = roles.RoleManager(self)
         self.services = services.ServiceManager(self)
@@ -137,54 +135,3 @@ class Client(httpclient.HTTPClient):
 
         if self.management_url is None:
             self.authenticate()
-
-    def get_raw_token_from_identity_service(self, auth_url, username=None,
-                                            password=None, tenant_name=None,
-                                            tenant_id=None, token=None,
-                                            project_name=None, project_id=None,
-                                            **kwargs):
-        """Authenticate against the v2 Identity API.
-
-        :returns: (``resp``, ``body``) if authentication was successful.
-        :raises: AuthorizationFailure if unable to authenticate or validate
-                 the existing authorization token
-        :raises: ValueError if insufficient parameters are used.
-
-        """
-        try:
-            return self._base_authN(auth_url,
-                                    username=username,
-                                    tenant_id=project_id or tenant_id,
-                                    tenant_name=project_name or tenant_name,
-                                    password=password,
-                                    token=token)
-        except (exceptions.AuthorizationFailure, exceptions.Unauthorized):
-            _logger.debug("Authorization Failed.")
-            raise
-        except Exception as e:
-            raise exceptions.AuthorizationFailure("Authorization Failed: "
-                                                  "%s" % e)
-
-    def _base_authN(self, auth_url, username=None, password=None,
-                    tenant_name=None, tenant_id=None, token=None):
-        """Takes a username, password, and optionally a tenant_id or
-        tenant_name to get an authentication token from keystone.
-        May also take a token and a tenant_id to re-scope a token
-        to a tenant.
-        """
-        headers = {}
-        url = auth_url + "/tokens"
-        if token:
-            headers['X-Auth-Token'] = token
-            params = {"auth": {"token": {"id": token}}}
-        elif username and password:
-            params = {"auth": {"passwordCredentials": {"username": username,
-                                                       "password": password}}}
-        else:
-            raise ValueError('A username and password or token is required.')
-        if tenant_id:
-            params['auth']['tenantId'] = tenant_id
-        elif tenant_name:
-            params['auth']['tenantName'] = tenant_name
-        resp, body = self.request(url, 'POST', body=params, headers=headers)
-        return resp, body

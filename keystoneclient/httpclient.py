@@ -33,6 +33,8 @@ if not hasattr(urlparse, 'parse_qsl'):
 
 
 from keystoneclient import access
+from keystoneclient.auth import endpoint as auth_endpoint
+from keystoneclient.auth import keystone as auth_keystone
 from keystoneclient import exceptions
 
 
@@ -116,7 +118,77 @@ def request(url, method='GET', headers=None, original_ip=None, debug=False,
     return resp
 
 
+class HTTPClientProxy(object):
+    """This class provides apiclient.HTTPClient interface.
+
+    This interface is used by AuthPlugin descendants.
+    """
+
+    def __init__(self, http_client):
+        self.http_client = http_client
+
+    @staticmethod
+    def concat_url(endpoint, url):
+        """Concatenate endpoint and final URL.
+
+        E.g., "http://keystone/v2.0/" and "/tokens" are concatenated to
+        "http://keystone/v2.0/tokens".
+
+        :param endpoint: the base URL
+        :param url: the final URL
+        """
+        return "%s/%s" % (endpoint.rstrip("/"), url.strip("/"))
+
+    @property
+    def region_name(self):
+        return self.http_client.region_name
+
+    def request(self, method, url, **kwargs):
+        try:
+            del kwargs["allow_redirects"]
+        except KeyError:
+            pass
+        if "json" in kwargs:
+            kwargs["body"] = kwargs["json"]
+            del kwargs["json"]
+        return self.http_client.request(
+            url, method, **kwargs)[0]
+
+
 class HTTPClient(object):
+    """Base class for Keystone clients of different versions.
+
+    Fields and properties:
+    * auth_domain_id
+    * auth_tenant_id
+    * auth_user_id
+    * auth_ref
+    * auth_token
+    * auth_token_from_user
+    * auth_url
+    * cert
+    * debug_log
+    * domain_id
+    * domain_name
+    * force_new_token
+    * management_url
+    * original_ip
+    * password
+    * project_domain_id
+    * project_domain_name
+    * project_id
+    * project_name
+    * region_name
+    * stale_duration
+    * timeout
+    * use_keyring
+    * user_domain_id
+    * user_domain_name
+    * user_id
+    * username
+    * verify_cert
+    * version
+    """
 
     def __init__(self, username=None, tenant_id=None, tenant_name=None,
                  password=None, auth_url=None, region_name=None, timeout=None,
@@ -126,7 +198,9 @@ class HTTPClient(object):
                  stale_duration=None, user_id=None, user_domain_id=None,
                  user_domain_name=None, domain_id=None, domain_name=None,
                  project_id=None, project_name=None, project_domain_id=None,
-                 project_domain_name=None):
+                 project_domain_name=None,
+                 auth_plugin=None,
+                 version=None):
         """Construct a new http client
 
         :param string user_id: User ID for authentication. (optional)
@@ -198,93 +272,51 @@ class HTTPClient(object):
                                  deprecated, use project_id instead.
 
         """
-        # set baseline defaults
+        self.version = version
+        if auth_url:
+            auth_url = auth_url.rstrip('/')
+        if endpoint:
+            endpoint = endpoint.rstrip('/')
+        if auth_plugin:
+            self.auth_plugin = auth_plugin
+        elif not auth_url:
+            self.auth_plugin = auth_endpoint.TokenEndpointAuthPlugin(
+                token=token,
+                endpoint=endpoint)
+        elif version == 'v3':
+            self.auth_plugin = auth_keystone.KeystoneAuthPluginV3(
+                auth_url=auth_url,
+                user_id=user_id,
+                username=username,
+                user_domain_id=user_domain_id,
+                user_domain_name=user_domain_name,
+                password=password,
+                domain_id=domain_id,
+                domain_name=domain_name,
+                project_id=project_id,
+                project_name=project_name,
+                project_domain_id=project_domain_id,
+                project_domain_name=project_domain_name,
+                token=token
+            )
+        else:
+            self.auth_plugin = auth_keystone.KeystoneAuthPluginV2(
+                auth_url=auth_url,
+                user_id=user_id,
+                username=username,
+                password=password,
+                token=token,
+                tenant_id=tenant_id,
+                tenant_name=tenant_name,
+            )
+        if endpoint:
+            self.auth_plugin.opts["endpoint"] = endpoint
+        if auth_ref:
+            self.auth_plugin.access_info = access.AccessInfo.factory(
+                **auth_ref)
 
-        self.user_id = None
-        self.username = None
-        self.user_domain_id = None
-        self.user_domain_name = None
-
-        self.domain_id = None
-        self.domain_name = None
-
-        self.project_id = None
-        self.project_name = None
-        self.project_domain_id = None
-        self.project_domain_name = None
-
-        self.auth_url = None
-        self.management_url = None
         self.timeout = float(timeout) if timeout is not None else None
 
-        # if loading from a dictionary passed in via auth_ref,
-        # load values from AccessInfo parsing that dictionary
-        if auth_ref:
-            self.auth_ref = access.AccessInfo.factory(**auth_ref)
-            self.version = self.auth_ref.version
-            self.user_id = self.auth_ref.user_id
-            self.username = self.auth_ref.username
-            self.user_domain_id = self.auth_ref.user_domain_id
-            self.domain_id = self.auth_ref.domain_id
-            self.domain_name = self.auth_ref.domain_name
-            self.project_id = self.auth_ref.project_id
-            self.project_name = self.auth_ref.project_name
-            self.project_domain_id = self.auth_ref.project_domain_id
-            self.auth_url = self.auth_ref.auth_url[0]
-            self.management_url = self.auth_ref.management_url[0]
-            self.auth_token = self.auth_ref.auth_token
-        else:
-            self.auth_ref = None
-
-        # allow override of the auth_ref defaults from explicit
-        # values provided to the client
-
-        # apply deprecated variables first, so modern variables override them
-        if tenant_id:
-            self.project_id = tenant_id
-        if tenant_name:
-            self.project_name = tenant_name
-
-        # user-related attributes
-        self.password = password
-        if user_id:
-            self.user_id = user_id
-        if username:
-            self.username = username
-        if user_domain_id:
-            self.user_domain_id = user_domain_id
-        elif not (user_id or user_domain_name):
-            self.user_domain_id = 'default'
-        if user_domain_name:
-            self.user_domain_name = user_domain_name
-
-        # domain-related attributes
-        if domain_id:
-            self.domain_id = domain_id
-        if domain_name:
-            self.domain_name = domain_name
-
-        # project-related attributes
-        if project_id:
-            self.project_id = project_id
-        if project_name:
-            self.project_name = project_name
-        if project_domain_id:
-            self.project_domain_id = project_domain_id
-        elif not (project_id or project_domain_name):
-            self.project_domain_id = 'default'
-        if project_domain_name:
-            self.project_domain_name = project_domain_name
-
-        # endpoint selection
-        if auth_url:
-            self.auth_url = auth_url.rstrip('/')
-        if token:
-            self.auth_token_from_user = token
-        else:
-            self.auth_token_from_user = None
-        if endpoint:
-            self.management_url = endpoint.rstrip('/')
         self.region_name = region_name
 
         self.original_ip = original_ip
@@ -297,7 +329,6 @@ class HTTPClient(object):
         self.cert = cert
         if cert and key:
             self.cert = (cert, key,)
-        self.domain = ''
 
         # logging setup
         self.debug_log = debug
@@ -316,6 +347,31 @@ class HTTPClient(object):
         self.stale_duration = stale_duration or access.STALE_TOKEN_DURATION
         self.stale_duration = int(self.stale_duration)
 
+        self.proxy = HTTPClientProxy(self)
+
+    @property
+    def auth_domain_id(self):
+        return self.auth_ref.domain_id
+
+    @property
+    def auth_tenant_id(self):
+        return self.auth_ref.tenant_id
+
+    @property
+    def auth_user_id(self):
+        return self.auth_ref.user_id
+
+    @property
+    def auth_ref(self):
+        try:
+            return self.auth_plugin.access_info
+        except AttributeError:
+            return None
+
+    @auth_ref.setter
+    def auth_ref(self, value):
+        self.auth_plugin.access_info = value
+
     @property
     def auth_token(self):
         if self.auth_token_from_user:
@@ -331,7 +387,89 @@ class HTTPClient(object):
 
     @auth_token.deleter
     def auth_token(self):
-        del self.auth_token_from_user
+        try:
+            del self.auth_plugin.opts["token"]
+        except KeyError:
+            pass
+
+    @property
+    def auth_token_from_user(self):
+        return self.auth_plugin.opts.get("token")
+
+    @auth_token_from_user.setter
+    def auth_token_from_user(self, value):
+        self.auth_plugin.opts["token"] = value
+
+    @property
+    def auth_url(self):
+        return (self.auth_plugin.opts.get("auth_url") or
+                (self.auth_ref and self.auth_ref.auth_url[0]))
+
+    def _get_opts_or_auth_ref(self, name):
+        return (self.auth_plugin.opts.get(name) or
+                (self.auth_ref and getattr(self.auth_ref, name)))
+
+    @property
+    def domain_id(self):
+        return self._get_opts_or_auth_ref("domain_id")
+
+    @property
+    def domain_name(self):
+        return self._get_opts_or_auth_ref("domain_name")
+
+    @property
+    def management_url(self):
+        return (self.auth_plugin.opts.get("endpoint") or
+                (self.auth_ref and self.auth_ref.management_url and
+                 self.auth_ref.management_url[0]))
+
+    @management_url.setter
+    def management_url(self, value):
+        self.auth_plugin.opts["endpoint"] = value
+
+    @property
+    def password(self):
+        return self.auth_plugin.opts.get("password")
+
+    @property
+    def project_domain_id(self):
+        return self._get_opts_or_auth_ref("project_domain_id")
+
+    @property
+    def project_domain_name(self):
+        return self._get_opts_or_auth_ref("project_domain_name")
+
+    @property
+    def project_id(self):
+        return self._get_opts_or_auth_ref("project_id")
+
+    @project_id.setter
+    def project_id(self, value):
+        self.auth_plugin.opts["project_id"] = value
+
+    @property
+    def project_name(self):
+        return self._get_opts_or_auth_ref("project_name")
+
+    @property
+    def user_domain_id(self):
+        return self._get_opts_or_auth_ref("user_domain_id")
+
+    @property
+    def user_domain_name(self):
+        return self._get_opts_or_auth_ref("user_domain_name")
+
+    @property
+    def user_id(self):
+        return self._get_opts_or_auth_ref("user_id")
+
+    @user_id.setter
+    def user_id(self, value):
+        self.auth_plugin.opts["user_id"] = value
+
+    @property
+    def username(self):
+        return self._get_opts_or_auth_ref("username")
 
     @property
     def service_catalog(self):
@@ -356,12 +494,7 @@ class HTTPClient(object):
         """
         return self.project_name
 
-    def authenticate(self, username=None, password=None, tenant_name=None,
-                     tenant_id=None, auth_url=None, token=None,
-                     user_id=None, domain_name=None, domain_id=None,
-                     project_name=None, project_id=None, user_domain_id=None,
-                     user_domain_name=None, project_domain_id=None,
-                     project_domain_name=None):
+    def authenticate(self, **kwargs):
         """Authenticate user.
 
         Uses the data provided at instantiation to authenticate against
@@ -386,6 +519,24 @@ class HTTPClient(object):
         the returned token. If not already set, will also set
         self.management_url from the details provided in the token.
 
+        kwargs can include the following options to override them in
+        `self.auth_plugin`:
+        * username
+        * password
+        * tenant_name
+        * tenant_id
+        * auth_url
+        * token
+        * user_id
+        * domain_name
+        * domain_id
+        * project_name
+        * project_id
+        * user_domain_id
+        * user_domain_name
+        * project_domain_id
+        * project_domain_name
+
         :returns: ``True`` if authentication was successful.
         :raises: AuthorizationFailure if unable to authenticate or validate
                  the existing authorization token
@@ -402,50 +553,41 @@ class HTTPClient(object):
         * if force_new_token is true
 
         """
-        auth_url = auth_url or self.auth_url
-        user_id = user_id or self.user_id
-        username = username or self.username
-        password = password or self.password
+        self.auth_plugin.opts.update(kwargs)
 
-        user_domain_id = user_domain_id or self.user_domain_id
-        user_domain_name = user_domain_name or self.user_domain_name
-        domain_id = domain_id or self.domain_id
-        domain_name = domain_name or self.domain_name
-        project_id = project_id or tenant_id or self.project_id
-        project_name = project_name or tenant_name or self.project_name
-        project_domain_id = project_domain_id or self.project_domain_id
-        project_domain_name = project_domain_name or self.project_domain_name
+        auth_ref = getattr(self.auth_plugin, "access_info", None)
+        if auth_ref and not (kwargs.get('token') or
+                             self.auth_plugin.opts.get('token') or
+                             auth_ref.will_expire_soon(self.stale_duration)):
+            token = auth_ref.auth_token
+            if token:
+                self.auth_plugin.opts["token"] = token
 
-        if not token:
-            token = self.auth_token_from_user
-            if (not token and self.auth_ref and not
-                    self.auth_ref.will_expire_soon(self.stale_duration)):
-                token = self.auth_ref.auth_token
-
-        kwargs = {
-            'auth_url': auth_url,
-            'user_id': user_id,
-            'username': username,
-            'user_domain_id': user_domain_id,
-            'user_domain_name': user_domain_name,
-            'domain_id': domain_id,
-            'domain_name': domain_name,
-            'project_id': project_id,
-            'project_name': project_name,
-            'project_domain_id': project_domain_id,
-            'project_domain_name': project_domain_name,
-            'token': token
-        }
-        (keyring_key, auth_ref) = self.get_auth_ref_from_keyring(**kwargs)
+        keyring_keys = (
+            'auth_url',
+            'user_id',
+            'username',
+            'user_domain_id',
+            'user_domain_name',
+            'domain_id',
+            'domain_name',
+            'project_id',
+            'project_name',
+            'project_domain_id',
+            'project_domain_name',
+            'token',
+        )
+        keyring_kwargs = dict(
+            (key, self.auth_plugin.opts.get(key, None))
+            for key in keyring_keys)
+        (keyring_key, auth_ref) = self.get_auth_ref_from_keyring(
+            **keyring_kwargs)
         new_token_needed = False
         if auth_ref is None or self.force_new_token:
             new_token_needed = True
-            kwargs['password'] = password
-            resp, body = self.get_raw_token_from_identity_service(**kwargs)
-            self.auth_ref = access.AccessInfo.factory(resp, body)
+            self.auth_plugin.authenticate(self.proxy)
         else:
-            self.auth_ref = auth_ref
-        self.process_token()
+            self.auth_plugin.access_info = auth_ref
         if new_token_needed:
             self.store_auth_ref_into_keyring(keyring_key)
         return True
@@ -501,31 +643,12 @@ class HTTPClient(object):
                 _logger.warning("Failed to store token into keyring %s" % (e))
 
     def process_token(self):
-        """Extract and process information from the new auth_ref.
+        """Deprecated, kept for compatibility.
 
+        Previous task: extract and process information from the new auth_ref.
         And set the relevant authentication information.
         """
-        # if we got a response without a service catalog, set the local
-        # list of tenants for introspection, and leave to client user
-        # to determine what to do. Otherwise, load up the service catalog
-        if self.auth_ref.project_scoped:
-            if not self.auth_ref.tenant_id:
-                raise exceptions.AuthorizationFailure(
-                    "Token didn't provide tenant_id")
-            if self.management_url is None and self.auth_ref.management_url:
-                self.management_url = self.auth_ref.management_url[0]
-            self.project_name = self.auth_ref.tenant_name
-            self.project_id = self.auth_ref.tenant_id
-
-        if not self.auth_ref.user_id:
-            raise exceptions.AuthorizationFailure(
-                "Token didn't provide user_id")
-
-        self.user_id = self.auth_ref.user_id
-
-        self.auth_domain_id = self.auth_ref.domain_id
-        self.auth_tenant_id = self.auth_ref.tenant_id
-        self.auth_user_id = self.auth_ref.user_id
+        pass
 
     def get_raw_token_from_identity_service(self, auth_url, username=None,
                                             password=None, tenant_name=None,
@@ -536,7 +659,9 @@ class HTTPClient(object):
                                             project_id=None, project_name=None,
                                             project_domain_id=None,
                                             project_domain_name=None):
-        """Authenticate against the Identity API and get a token.
+        """Deprecated, kept for compatibility.
+
+        Previous task: authenticate against the Identity API and get a token.
 
         Not implemented here because auth protocols should be API
         version-specific.
@@ -544,19 +669,8 @@ class HTTPClient(object):
         Expected to authenticate or validate an existing authentication
         reference already associated with the client. Invoking this call
         *always* makes a call to the Identity service.
-
-        :returns: (``resp``, ``body``)
-
         """
-        raise NotImplementedError
-
-    def _extract_service_catalog(self, url, body):
-        """Set the client's service catalog from the response data.
-
-        Not implemented here because data returned may be API
-        version-specific.
-        """
-        raise NotImplementedError
+        pass
 
     def serialize(self, entity):
         return json.dumps(entity)
