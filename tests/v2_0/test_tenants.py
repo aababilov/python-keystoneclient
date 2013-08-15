@@ -2,8 +2,6 @@ import copy
 import json
 import urlparse
 
-import requests
-
 from keystoneclient import exceptions
 from keystoneclient.v2_0 import tenants
 from tests import utils
@@ -80,7 +78,7 @@ class TenantTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request('POST',
+        self.add_request('POST',
                          urlparse.urljoin(self.TEST_URL, 'v2.0/tenants'),
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -119,7 +117,7 @@ class TenantTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request('POST',
+        self.add_request('POST',
                          urlparse.urljoin(self.TEST_URL, 'v2.0/tenants'),
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -139,7 +137,7 @@ class TenantTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          urlparse.urljoin(self.TEST_URL, 'v2.0/tenants/1'),
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -156,7 +154,7 @@ class TenantTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL, 'v2.0/tenants/1'),
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -174,7 +172,7 @@ class TenantTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL, 'v2.0/tenants'),
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -190,7 +188,7 @@ class TenantTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants?limit=1'),
                          **kwargs).AndReturn((resp))
@@ -207,7 +205,7 @@ class TenantTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants?marker=1'),
                          **kwargs).AndReturn((resp))
@@ -224,7 +222,7 @@ class TenantTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants?marker=1&limit=1'),
                          **kwargs).AndReturn((resp))
@@ -261,7 +259,7 @@ class TenantTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request('POST',
+        self.add_request('POST',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/4'),
                          **kwargs).AndReturn((resp))
@@ -306,7 +304,7 @@ class TenantTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request('POST',
+        self.add_request('POST',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/4'),
                          **kwargs).AndReturn((resp))
@@ -330,7 +328,7 @@ class TenantTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('PUT',
+        self.add_request('PUT',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/4/users/foo/roles/OS-KSADM/barrr'),
                          **kwargs).AndReturn((resp))
@@ -346,7 +344,7 @@ class TenantTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/4/users/foo/roles/OS-KSADM/barrr'),
                          **kwargs).AndReturn((resp))
@@ -370,7 +368,7 @@ class TenantTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('PUT',
+        self.add_request('PUT',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/4/users/foo/roles/OS-KSADM/barrr'),
                          **kwargs).AndReturn((resp))
@@ -398,7 +396,7 @@ class TenantTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/4/users/foo/roles/OS-KSADM/barrr'),
                          **kwargs).AndReturn((resp))

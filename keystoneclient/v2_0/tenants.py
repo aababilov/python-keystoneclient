@@ -116,7 +116,7 @@ class TenantManager(base.ManagerWithFind):
             self.api.management_url = self.api.auth_url
         tenant_list = self._list("/tenants%s" % query, "tenants")
         if reset:
-            self.api.management_url = None
+            del self.api.auth_plugin.opts["endpoint"]
         return tenant_list
 
     def update(self, tenant_id, tenant_name=None, description=None,

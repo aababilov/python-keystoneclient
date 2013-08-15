@@ -18,8 +18,6 @@ import copy
 import urlparse
 import uuid
 
-import requests
-
 from keystoneclient.v3 import groups
 from tests.v3 import utils
 
@@ -49,7 +47,7 @@ class GroupTests(utils.TestCase, utils.CrudTests):
         method = 'GET'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -74,7 +72,7 @@ class GroupTests(utils.TestCase, utils.CrudTests):
         method = 'GET'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,

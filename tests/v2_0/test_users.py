@@ -2,8 +2,6 @@ import copy
 import json
 import urlparse
 
-import requests
-
 from keystoneclient.v2_0 import users
 from tests import utils
 
@@ -67,7 +65,7 @@ class UserTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request(
+        self.add_request(
             'POST',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users'),
             **kwargs).AndReturn((resp))
@@ -91,7 +89,7 @@ class UserTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request(
+        self.add_request(
             'DELETE',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users/1'),
             **kwargs).AndReturn((resp))
@@ -109,7 +107,7 @@ class UserTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request(
+        self.add_request(
             'GET',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users/1'),
             **kwargs).AndReturn((resp))
@@ -128,7 +126,7 @@ class UserTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request(
+        self.add_request(
             'GET',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users'),
             **kwargs).AndReturn((resp))
@@ -145,7 +143,7 @@ class UserTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request(
+        self.add_request(
             'GET',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users?limit=1'),
             **kwargs).AndReturn((resp))
@@ -162,7 +160,7 @@ class UserTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request(
+        self.add_request(
             'GET',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users?marker=foo'),
             **kwargs).AndReturn((resp))
@@ -179,7 +177,7 @@ class UserTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request(
+        self.add_request(
             'GET',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users?marker=foo&limit=1'),
             **kwargs).AndReturn((resp))
@@ -236,28 +234,28 @@ class UserTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_1)
-        requests.request(
+        self.add_request(
             'PUT',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users/2'),
             **kwargs).AndReturn((resp_1))
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_2)
-        requests.request(
+        self.add_request(
             'PUT',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users/2/OS-KSADM/password'),
             **kwargs).AndReturn((resp_2))
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_3)
-        requests.request(
+        self.add_request(
             'PUT',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users/2/OS-KSADM/tenant'),
             **kwargs).AndReturn((resp_3))
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_4)
-        requests.request(
+        self.add_request(
             'PUT',
             urlparse.urljoin(self.TEST_URL, 'v2.0/users/2/OS-KSADM/enabled'),
             **kwargs).AndReturn((resp_4))
@@ -287,9 +285,9 @@ class UserTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request(
+        self.add_request(
             'PATCH',
-            urlparse.urljoin(self.TEST_URL, 'v2.0/OS-KSCRUD/users/123'),
+            urlparse.urljoin(self.TEST_SERVICE_URL, 'v2.0/OS-KSCRUD/users/123'),
             **kwargs).AndReturn((resp))
 
         self.mox.ReplayAll()

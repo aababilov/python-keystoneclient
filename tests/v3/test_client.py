@@ -37,7 +37,9 @@ class KeystoneClientTest(utils.TestCase):
         self.unscoped_mock_req = mock.Mock(return_value=unscoped_fake_resp)
 
     def test_unscoped_init(self):
-        with mock.patch.object(requests, "request", self.unscoped_mock_req):
+        with mock.patch.object(requests.Session,
+                               "request",
+                               self.unscoped_mock_req):
             c = client.Client(user_domain_name='exampledomain',
                               username='exampleuser',
                               password='password',
@@ -49,7 +51,7 @@ class KeystoneClientTest(utils.TestCase):
                               'c4da488862bd435c9e6c0275a0d0e49a')
 
     def test_domain_scoped_init(self):
-        with mock.patch.object(requests,
+        with mock.patch.object(requests.Session,
                                "request",
                                self.domain_scoped_mock_req):
             c = client.Client(user_id='c4da488862bd435c9e6c0275a0d0e49a',
@@ -65,7 +67,7 @@ class KeystoneClientTest(utils.TestCase):
                               '8e9283b7ba0b1038840c3842058b86ab')
 
     def test_project_scoped_init(self):
-        with mock.patch.object(requests,
+        with mock.patch.object(requests.Session,
                                "request",
                                self.project_scoped_mock_req):
             c = client.Client(user_id='c4da488862bd435c9e6c0275a0d0e49a',
@@ -82,7 +84,7 @@ class KeystoneClientTest(utils.TestCase):
                               '225da22d3ce34b15877ea70b2a575f58')
 
     def test_auth_ref_load(self):
-        with mock.patch.object(requests,
+        with mock.patch.object(requests.Session,
                                "request",
                                self.project_scoped_mock_req):
             c = client.Client(user_id='c4da488862bd435c9e6c0275a0d0e49a',
@@ -100,7 +102,7 @@ class KeystoneClientTest(utils.TestCase):
                              'http://admin:35357/v3')
 
     def test_auth_ref_load_with_overridden_arguments(self):
-        with mock.patch.object(requests,
+        with mock.patch.object(requests.Session,
                                "request",
                                self.project_scoped_mock_req):
             c = client.Client(user_id='c4da488862bd435c9e6c0275a0d0e49a',

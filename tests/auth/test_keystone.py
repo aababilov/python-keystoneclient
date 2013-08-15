@@ -1,16 +1,84 @@
 import copy
 import json
+
+import mock
 import requests
 
-from keystoneclient import exceptions
-from keystoneclient.v3 import client
+from keystoneclient.apiclient import client as api_client
+from keystoneclient.apiclient import exceptions
+from keystoneclient.apiclient import fake_client
+
+from keystoneclient.auth import keystone
 
 from tests.v3 import utils
 
 
-class AuthenticateAgainstKeystoneTests(utils.TestCase):
+class KeystoneAuthPluginV2Test(utils.TestCase):
+
+    def test_authenticate(self):
+        http_client = api_client.HTTPClient(None)
+        mock_request = mock.Mock()
+        mock_request.return_value = fake_client.TestResponse({
+            "status_code": 200,
+            "text": {"access": {"token": {"id": "123"}}}
+        })
+        successful_tests = [
+            {
+                "kwargs": ["tenant_id", "token", "auth_url"],
+                "data": {
+                    "auth": {
+                        "token": {"id": "token"}, "tenantId": "tenant_id"
+                    },
+                },
+            },
+            {
+                "kwargs": ["tenant_name", "token", "auth_url"],
+                "data": {
+                    "auth": {
+                        "token": {"id": "token"}, "tenantName": "tenant_name"
+                    },
+                },
+            },
+            {
+                "kwargs": ["username", "password", "tenant_name", "auth_url"],
+                "data": {
+                    "auth": {
+                        "tenantName": "tenant_name",
+                        "passwordCredentials": {
+                            "username": "username",
+                            "password": "password",
+                        },
+                    },
+                },
+            },
+        ]
+        with mock.patch("requests.Session.request", mock_request):
+            for test in successful_tests:
+                kwargs = dict((k, k) for k in test["kwargs"])
+                auth = keystone.KeystoneAuthPluginV2(**kwargs)
+                http_client.auth_plugin = auth
+                http_client.authenticate()
+                requests.Session.request.assert_called_with(
+                    "POST",
+                    "auth_url/tokens",
+                    headers=mock.ANY,
+                    allow_redirects=True,
+                    data=json.dumps(test["data"]),
+                    verify=mock.ANY)
+
+            auth = keystone.KeystoneAuthPluginV3(
+                password="password",
+                tenant_name="tenant_name",
+                auth_url="auth_url")
+            http_client.auth_plugin = auth
+            self.assertRaises(exceptions.AuthPluginOptionsMissing,
+                              http_client.authenticate)
+
+
+class KeystoneAuthPluginV3Test(utils.TestCase):
+
     def setUp(self):
-        super(AuthenticateAgainstKeystoneTests, self).setUp()
+        super(KeystoneAuthPluginV3Test, self).setUp()
         self.TEST_RESPONSE_DICT = {
             "token": {
                 "methods": [
@@ -62,11 +130,18 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         }
         self.TEST_REQUEST_HEADERS = {
             'Content-Type': 'application/json',
-            'User-Agent': 'python-keystoneclient'
+            'User-Agent': api_client.HTTPClient.user_agent,
         }
         self.TEST_RESPONSE_HEADERS = {
             'X-Subject-Token': self.TEST_TOKEN
         }
+        self.TEST_REQUEST_BASE = copy.copy(self.TEST_REQUEST_BASE)
+        self.TEST_REQUEST_BASE["allow_redirects"] = True
+
+    def _authenticate(self, **kwargs):
+        auth = keystone.KeystoneAuthPluginV3(**kwargs)
+        self.http_client.auth_plugin = auth
+        self.http_client.authenticate()
 
     def test_authenticate_success(self):
         TEST_TOKEN = "abcdef"
@@ -75,7 +150,7 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         del ident['password']['user']['domain']
         del ident['password']['user']['name']
         ident['password']['user']['id'] = self.TEST_USER
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_RESPONSE_DICT),
             "headers": self.TEST_RESPONSE_HEADERS,
@@ -84,21 +159,23 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
         kwargs['data'] = json.dumps(self.TEST_REQUEST_BODY, sort_keys=True)
-        requests.request('POST',
+        self.add_request('POST',
                          self.TEST_URL + "/auth/tokens",
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
 
-        cs = client.Client(user_id=self.TEST_USER,
-                           password=self.TEST_TOKEN,
-                           project_id=self.TEST_TENANT_ID,
-                           auth_url=self.TEST_URL)
-        self.assertEqual(cs.auth_token, TEST_TOKEN)
+        self._authenticate(
+            user_id=self.TEST_USER,
+            password=self.TEST_TOKEN,
+            project_id=self.TEST_TENANT_ID,
+            auth_url=self.TEST_URL)
+        self.assertEqual(self.http_client.auth_plugin.access_info.auth_token,
+                         TEST_TOKEN)
 
     def test_authenticate_failure(self):
         ident = self.TEST_REQUEST_BODY['auth']['identity']
         ident['password']['user']['password'] = 'bad_key'
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 401,
             "text": json.dumps({
                 "unauthorized": {
@@ -111,7 +188,7 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
         kwargs['data'] = json.dumps(self.TEST_REQUEST_BODY, sort_keys=True)
-        requests.request('POST',
+        self.add_request('POST',
                          self.TEST_URL + "/auth/tokens",
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -120,62 +197,16 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         # where with assertRaises(exceptions.Unauthorized): doesn't work
         # right
         def client_create_wrapper():
-            client.Client(user_domain_name=self.TEST_DOMAIN_NAME,
-                          username=self.TEST_USER,
-                          password="bad_key",
-                          project_id=self.TEST_TENANT_ID,
-                          auth_url=self.TEST_URL)
+            self._authenticate(user_domain_name=self.TEST_DOMAIN_NAME,
+                               username=self.TEST_USER,
+                               password="bad_key",
+                               project_id=self.TEST_TENANT_ID,
+                               auth_url=self.TEST_URL)
 
         self.assertRaises(exceptions.Unauthorized, client_create_wrapper)
 
-    def test_auth_redirect(self):
-        correct_response = json.dumps(self.TEST_RESPONSE_DICT, sort_keys=True)
-        dict_responses = [
-            {
-                "headers": {
-                    'location': self.TEST_ADMIN_URL + "/auth/tokens",
-                    'X-Subject-Token': self.TEST_TOKEN,
-                },
-                "status_code": 305,
-                "text": "Use proxy",
-            },
-            {
-                "headers": {'X-Subject-Token': self.TEST_TOKEN},
-                "status_code": 200,
-                "text": correct_response,
-            },
-        ]
-        responses = [(utils.TestResponse(resp))
-                     for resp in dict_responses]
-
-        kwargs = copy.copy(self.TEST_REQUEST_BASE)
-        kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        kwargs['data'] = json.dumps(self.TEST_REQUEST_BODY, sort_keys=True)
-        requests.request('POST',
-                         self.TEST_URL + "/auth/tokens",
-                         **kwargs).AndReturn(responses[0])
-        kwargs = copy.copy(self.TEST_REQUEST_BASE)
-        kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        kwargs['data'] = json.dumps(self.TEST_REQUEST_BODY, sort_keys=True)
-        requests.request('POST',
-                         self.TEST_ADMIN_URL + "/auth/tokens",
-                         **kwargs).AndReturn(responses[1])
-        self.mox.ReplayAll()
-
-        cs = client.Client(user_domain_name=self.TEST_DOMAIN_NAME,
-                           username=self.TEST_USER,
-                           password=self.TEST_TOKEN,
-                           project_id=self.TEST_TENANT_ID,
-                           auth_url=self.TEST_URL)
-
-        self.assertEqual(cs.management_url,
-                         self.TEST_RESPONSE_DICT["token"]["catalog"][3]
-                         ['endpoints'][2]["url"])
-        self.assertEqual(cs.auth_token,
-                         self.TEST_RESPONSE_HEADERS["X-Subject-Token"])
-
     def test_authenticate_success_domain_username_password_scoped(self):
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_RESPONSE_DICT),
             "headers": self.TEST_RESPONSE_HEADERS,
@@ -184,20 +215,21 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
         kwargs['data'] = json.dumps(self.TEST_REQUEST_BODY, sort_keys=True)
-        requests.request('POST',
+        self.add_request('POST',
                          self.TEST_URL + "/auth/tokens",
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
 
-        cs = client.Client(user_domain_name=self.TEST_DOMAIN_NAME,
+        self._authenticate(user_domain_name=self.TEST_DOMAIN_NAME,
                            username=self.TEST_USER,
                            password=self.TEST_TOKEN,
                            project_id=self.TEST_TENANT_ID,
                            auth_url=self.TEST_URL)
-        self.assertEqual(cs.management_url,
-                         self.TEST_RESPONSE_DICT["token"]["catalog"][3]
-                         ['endpoints'][2]["url"])
-        self.assertEqual(cs.auth_token,
+        self.assertEqual(
+            self.http_client.auth_plugin.access_info.management_url[0],
+            self.TEST_RESPONSE_DICT["token"]["catalog"][3]
+            ['endpoints'][2]["url"])
+        self.assertEqual(self.http_client.auth_plugin.access_info.auth_token,
                          self.TEST_RESPONSE_HEADERS["X-Subject-Token"])
 
     def test_authenticate_success_userid_password_domain_scoped(self):
@@ -217,7 +249,7 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         token['domain']['id'] = self.TEST_DOMAIN_ID
         token['domain']['name'] = self.TEST_DOMAIN_NAME
 
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_RESPONSE_DICT),
             "headers": self.TEST_RESPONSE_HEADERS,
@@ -227,21 +259,22 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
 
         kwargs['data'] = json.dumps(self.TEST_REQUEST_BODY, sort_keys=True)
-        requests.request('POST',
+        self.add_request('POST',
                          self.TEST_URL + "/auth/tokens",
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
 
-        cs = client.Client(user_id=self.TEST_USER,
+        self._authenticate(user_id=self.TEST_USER,
                            password=self.TEST_TOKEN,
                            domain_id=self.TEST_DOMAIN_ID,
                            auth_url=self.TEST_URL)
-        self.assertEqual(cs.auth_domain_id,
+        self.assertEqual(self.http_client.auth_plugin.access_info.domain_id,
                          self.TEST_DOMAIN_ID)
-        self.assertEqual(cs.management_url,
-                         self.TEST_RESPONSE_DICT["token"]["catalog"][3]
-                         ['endpoints'][2]["url"])
-        self.assertEqual(cs.auth_token,
+        self.assertEqual(
+            self.http_client.auth_plugin.access_info.management_url[0],
+            self.TEST_RESPONSE_DICT["token"]["catalog"][3]
+            ['endpoints'][2]["url"])
+        self.assertEqual(self.http_client.auth_plugin.access_info.auth_token,
                          self.TEST_RESPONSE_HEADERS["X-Subject-Token"])
 
     def test_authenticate_success_userid_password_project_scoped(self):
@@ -250,7 +283,7 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         del ident['password']['user']['name']
         ident['password']['user']['id'] = self.TEST_USER
 
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_RESPONSE_DICT),
             "headers": self.TEST_RESPONSE_HEADERS,
@@ -260,27 +293,28 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
 
         kwargs['data'] = json.dumps(self.TEST_REQUEST_BODY, sort_keys=True)
-        requests.request('POST',
+        self.add_request('POST',
                          self.TEST_URL + "/auth/tokens",
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
 
-        cs = client.Client(user_id=self.TEST_USER,
+        self._authenticate(user_id=self.TEST_USER,
                            password=self.TEST_TOKEN,
                            project_id=self.TEST_TENANT_ID,
                            auth_url=self.TEST_URL)
-        self.assertEqual(cs.auth_tenant_id,
+        self.assertEqual(self.http_client.auth_plugin.access_info.tenant_id,
                          self.TEST_TENANT_ID)
-        self.assertEqual(cs.management_url,
-                         self.TEST_RESPONSE_DICT["token"]["catalog"][3]
-                         ['endpoints'][2]["url"])
-        self.assertEqual(cs.auth_token,
+        self.assertEqual(
+            self.http_client.auth_plugin.access_info.management_url[0],
+            self.TEST_RESPONSE_DICT["token"]["catalog"][3]
+            ['endpoints'][2]["url"])
+        self.assertEqual(self.http_client.auth_plugin.access_info.auth_token,
                          self.TEST_RESPONSE_HEADERS["X-Subject-Token"])
 
     def test_authenticate_success_password_unscoped(self):
         del self.TEST_RESPONSE_DICT['token']['catalog']
         del self.TEST_REQUEST_BODY['auth']['scope']
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_RESPONSE_DICT),
             "headers": self.TEST_RESPONSE_HEADERS,
@@ -289,18 +323,19 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
         kwargs['data'] = json.dumps(self.TEST_REQUEST_BODY, sort_keys=True)
-        requests.request('POST',
+        self.add_request('POST',
                          self.TEST_URL + "/auth/tokens",
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
 
-        cs = client.Client(user_domain_name=self.TEST_DOMAIN_NAME,
+        self._authenticate(user_domain_name=self.TEST_DOMAIN_NAME,
                            username=self.TEST_USER,
                            password=self.TEST_TOKEN,
                            auth_url=self.TEST_URL)
-        self.assertEqual(cs.auth_token,
+        self.assertEqual(self.http_client.auth_plugin.access_info.auth_token,
                          self.TEST_RESPONSE_HEADERS["X-Subject-Token"])
-        self.assertFalse('catalog' in cs.service_catalog.catalog)
+        self.assertFalse('catalog' in self.http_client.auth_plugin.access_info.
+                         service_catalog.catalog)
 
     def test_authenticate_success_token_domain_scoped(self):
         ident = self.TEST_REQUEST_BODY['auth']['identity']
@@ -321,7 +356,7 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         token['domain']['name'] = self.TEST_DOMAIN_NAME
 
         self.TEST_REQUEST_HEADERS['X-Auth-Token'] = self.TEST_TOKEN
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_RESPONSE_DICT),
             "headers": self.TEST_RESPONSE_HEADERS,
@@ -330,20 +365,21 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
         kwargs['data'] = json.dumps(self.TEST_REQUEST_BODY, sort_keys=True)
-        requests.request('POST',
+        self.add_request('POST',
                          self.TEST_URL + "/auth/tokens",
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
 
-        cs = client.Client(token=self.TEST_TOKEN,
+        self._authenticate(token=self.TEST_TOKEN,
                            domain_id=self.TEST_DOMAIN_ID,
                            auth_url=self.TEST_URL)
-        self.assertEqual(cs.auth_domain_id,
+        self.assertEqual(self.http_client.auth_plugin.access_info.domain_id,
                          self.TEST_DOMAIN_ID)
-        self.assertEqual(cs.management_url,
-                         self.TEST_RESPONSE_DICT["token"]["catalog"][3]
-                         ['endpoints'][2]["url"])
-        self.assertEqual(cs.auth_token,
+        self.assertEqual(
+            self.http_client.auth_plugin.access_info.management_url[0],
+            self.TEST_RESPONSE_DICT["token"]["catalog"][3]
+            ['endpoints'][2]["url"])
+        self.assertEqual(self.http_client.auth_plugin.access_info.auth_token,
                          self.TEST_RESPONSE_HEADERS["X-Subject-Token"])
 
     def test_authenticate_success_token_project_scoped(self):
@@ -353,7 +389,7 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         ident['token'] = {}
         ident['token']['id'] = self.TEST_TOKEN
         self.TEST_REQUEST_HEADERS['X-Auth-Token'] = self.TEST_TOKEN
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_RESPONSE_DICT),
             "headers": self.TEST_RESPONSE_HEADERS,
@@ -362,20 +398,21 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
         kwargs['data'] = json.dumps(self.TEST_REQUEST_BODY, sort_keys=True)
-        requests.request('POST',
+        self.add_request('POST',
                          self.TEST_URL + "/auth/tokens",
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
 
-        cs = client.Client(token=self.TEST_TOKEN,
+        self._authenticate(token=self.TEST_TOKEN,
                            project_id=self.TEST_TENANT_ID,
                            auth_url=self.TEST_URL)
-        self.assertEqual(cs.auth_tenant_id,
+        self.assertEqual(self.http_client.auth_plugin.access_info.tenant_id,
                          self.TEST_TENANT_ID)
-        self.assertEqual(cs.management_url,
-                         self.TEST_RESPONSE_DICT["token"]["catalog"][3]
-                         ['endpoints'][2]["url"])
-        self.assertEqual(cs.auth_token,
+        self.assertEqual(
+            self.http_client.auth_plugin.access_info.management_url[0],
+            self.TEST_RESPONSE_DICT["token"]["catalog"][3]
+            ['endpoints'][2]["url"])
+        self.assertEqual(self.http_client.auth_plugin.access_info.auth_token,
                          self.TEST_RESPONSE_HEADERS["X-Subject-Token"])
 
     def test_authenticate_success_token_unscoped(self):
@@ -387,7 +424,7 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         del self.TEST_REQUEST_BODY['auth']['scope']
         del self.TEST_RESPONSE_DICT['token']['catalog']
         self.TEST_REQUEST_HEADERS['X-Auth-Token'] = self.TEST_TOKEN
-        resp = utils.TestResponse({
+        resp = fake_client.TestResponse({
             "status_code": 200,
             "text": json.dumps(self.TEST_RESPONSE_DICT),
             "headers": self.TEST_RESPONSE_HEADERS,
@@ -396,13 +433,14 @@ class AuthenticateAgainstKeystoneTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
         kwargs['data'] = json.dumps(self.TEST_REQUEST_BODY, sort_keys=True)
-        requests.request('POST',
+        self.add_request('POST',
                          self.TEST_URL + "/auth/tokens",
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
 
-        cs = client.Client(token=self.TEST_TOKEN,
+        self._authenticate(token=self.TEST_TOKEN,
                            auth_url=self.TEST_URL)
-        self.assertEqual(cs.auth_token,
+        self.assertEqual(self.http_client.auth_plugin.access_info.auth_token,
                          self.TEST_RESPONSE_HEADERS["X-Subject-Token"])
-        self.assertFalse('catalog' in cs.service_catalog.catalog)
+        self.assertFalse('catalog' in self.http_client.auth_plugin.access_info.
+                         service_catalog.catalog)

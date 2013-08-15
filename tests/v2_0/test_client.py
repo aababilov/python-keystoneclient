@@ -25,7 +25,8 @@ class KeystoneClientTest(utils.TestCase):
         self.unscoped_mock_req = mock.Mock(return_value=unscoped_fake_resp)
 
     def test_unscoped_init(self):
-        with mock.patch.object(requests, "request", self.unscoped_mock_req):
+        with mock.patch.object(
+                requests.Session, "request", self.unscoped_mock_req):
             c = client.Client(username='exampleuser',
                               password='password',
                               auth_url='http://somewhere/')
@@ -35,7 +36,8 @@ class KeystoneClientTest(utils.TestCase):
             self.assertFalse(c.auth_ref.project_scoped)
 
     def test_scoped_init(self):
-        with mock.patch.object(requests, "request", self.scoped_mock_req):
+        with mock.patch.object(
+                requests.Session, "request", self.scoped_mock_req):
             c = client.Client(username='exampleuser',
                               password='password',
                               tenant_name='exampleproject',
@@ -46,7 +48,8 @@ class KeystoneClientTest(utils.TestCase):
             self.assertFalse(c.auth_ref.domain_scoped)
 
     def test_auth_ref_load(self):
-        with mock.patch.object(requests, "request", self.scoped_mock_req):
+        with mock.patch.object(
+                requests.Session, "request", self.scoped_mock_req):
             cl = client.Client(username='exampleuser',
                                password='password',
                                tenant_name='exampleproject',
@@ -63,7 +66,8 @@ class KeystoneClientTest(utils.TestCase):
                              'http://admin:35357/v2.0')
 
     def test_auth_ref_load_with_overridden_arguments(self):
-        with mock.patch.object(requests, "request", self.scoped_mock_req):
+        with mock.patch.object(
+                requests.Session, "request", self.scoped_mock_req):
             cl = client.Client(username='exampleuser',
                                password='password',
                                tenant_name='exampleproject',

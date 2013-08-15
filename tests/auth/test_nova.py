@@ -17,7 +17,7 @@
 
 import mock
 
-from keystoneclient import httpclient
+from keystoneclient.apiclient import client
 
 from keystoneclient.auth import nova
 
@@ -27,7 +27,7 @@ from tests import utils
 class NovaLegacyAuthPluginTest(utils.TestCase):
 
     def test_authenticate(self):
-        http_client = httpclient.HTTPClientProxy(None)
+        http_client = client.HTTPClient(None)
         mock_request = mock.Mock()
         mock_request.return_value = utils.TestResponse({
             "status_code": 200,
@@ -37,7 +37,7 @@ class NovaLegacyAuthPluginTest(utils.TestCase):
                 "X-Server-Management-Url": "url",
             },
         })
-        with mock.patch("keystoneclient.httpclient.HTTPClientProxy.request",
+        with mock.patch("keystoneclient.apiclient.client.HTTPClient.request",
                         mock_request):
             auth = nova.NovaLegacyAuthPlugin(
                 username="username",
@@ -45,7 +45,7 @@ class NovaLegacyAuthPluginTest(utils.TestCase):
                 project_id="project_id",
                 auth_url="auth_url")
             auth.authenticate(http_client)
-            httpclient.HTTPClientProxy.request.assert_called_with(
+            client.HTTPClient.request.assert_called_with(
                 "GET",
                 "auth_url",
                 headers={

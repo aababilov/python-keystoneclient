@@ -18,8 +18,6 @@ import copy
 import urlparse
 import uuid
 
-import requests
-
 from keystoneclient.v3 import users
 from tests.v3 import utils
 
@@ -53,7 +51,7 @@ class UserTests(utils.TestCase, utils.CrudTests):
         method = 'PUT'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -75,7 +73,7 @@ class UserTests(utils.TestCase, utils.CrudTests):
         method = 'GET'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -99,7 +97,7 @@ class UserTests(utils.TestCase, utils.CrudTests):
         method = 'HEAD'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -121,7 +119,7 @@ class UserTests(utils.TestCase, utils.CrudTests):
         method = 'DELETE'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -147,7 +145,7 @@ class UserTests(utils.TestCase, utils.CrudTests):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
         kwargs['data'] = self.serialize(req_ref)
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -183,7 +181,7 @@ class UserTests(utils.TestCase, utils.CrudTests):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
         kwargs['data'] = self.serialize(req_ref)
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -219,7 +217,7 @@ class UserTests(utils.TestCase, utils.CrudTests):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
         kwargs['data'] = self.serialize(req_ref)
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -253,7 +251,7 @@ class UserTests(utils.TestCase, utils.CrudTests):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
         kwargs['data'] = self.serialize(req_ref)
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,

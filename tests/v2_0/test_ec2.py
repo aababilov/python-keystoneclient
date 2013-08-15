@@ -2,8 +2,6 @@ import copy
 import json
 import urlparse
 
-import requests
-
 from keystoneclient.v2_0 import ec2
 from tests import utils
 
@@ -46,7 +44,7 @@ class EC2Tests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request('POST',
+        self.add_request('POST',
                          url,
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -80,7 +78,7 @@ class EC2Tests(utils.TestCase):
                                (user_id, 'access'))
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          url,
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -125,7 +123,7 @@ class EC2Tests(utils.TestCase):
                                'v2.0/users/%s/credentials/OS-EC2' % user_id)
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          url,
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
@@ -152,7 +150,7 @@ class EC2Tests(utils.TestCase):
                                (user_id, access))
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          url,
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()

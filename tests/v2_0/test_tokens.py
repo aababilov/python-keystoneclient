@@ -1,8 +1,6 @@
 import copy
 import urlparse
 
-import requests
-
 from tests import utils
 
 
@@ -24,7 +22,7 @@ class TokenTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request(
+        self.add_request(
             'DELETE',
             urlparse.urljoin(self.TEST_URL, 'v2.0/tokens/1'),
             **kwargs).AndReturn((resp))

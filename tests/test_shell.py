@@ -408,11 +408,11 @@ class ShellTest(utils.TestCase):
             'endpoints': [],
         })
         request_mock = mock.MagicMock(return_value=response_mock)
-        with mock.patch('requests.request', request_mock):
-            shell(('--timeout 2 --os-token=blah  --os-endpoint=blah'
-                   ' --os-auth-url=blah.com endpoint-list'))
+        with mock.patch('requests.Session.request', request_mock):
+            shell(('--timeout 2 --os-token=blah --os-endpoint=http://blah'
+                   ' --os-auth-url= endpoint-list'))
             request_mock.assert_called_with(mock.ANY, mock.ANY,
-                                            timeout=2,
+                                            timeout=2.0,
                                             headers=mock.ANY,
                                             verify=mock.ANY)
 

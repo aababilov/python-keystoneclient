@@ -8,11 +8,8 @@
 OpenStack Client interface. Handles the REST calls and responses.
 """
 
-import copy
 import logging
 import urlparse
-
-import requests
 
 try:
     import keyring
@@ -33,129 +30,15 @@ if not hasattr(urlparse, 'parse_qsl'):
 
 
 from keystoneclient import access
+from keystoneclient.apiclient import client
 from keystoneclient.auth import endpoint as auth_endpoint
 from keystoneclient.auth import keystone as auth_keystone
-from keystoneclient import exceptions
 
 
 _logger = logging.getLogger(__name__)
 
 
-USER_AGENT = 'python-keystoneclient'
-
-
-def request(url, method='GET', headers=None, original_ip=None, debug=False,
-            logger=None, **kwargs):
-    """Perform a http request with standard settings.
-
-    A wrapper around requests.request that adds standard headers like
-    User-Agent and provides optional debug logging of the request.
-
-    Arguments that are not handled are passed through to the requests library.
-
-    :param string url: The url to make the request of.
-    :param string method: The http method to use. (eg. 'GET', 'POST')
-    :param dict headers: Headers to be included in the request. (optional)
-    :param string original_ip: Mark this request as forwarded for this ip.
-                               (optional)
-    :param bool debug: Enable debug logging. (Defaults to False)
-    :param logging.Logger logger: A logger to output to. (optional)
-
-    :raises exceptions.ClientException: For connection failure, or to indicate
-                                        an error response code.
-
-    :returns: The response to the request.
-    """
-
-    if not headers:
-        headers = dict()
-
-    if not logger:
-        logger = _logger
-
-    headers.setdefault('User-Agent', USER_AGENT)
-
-    if original_ip:
-        headers['Forwarded'] = "for=%s;by=%s" % (original_ip, USER_AGENT)
-
-    if debug:
-        string_parts = ['curl -i']
-
-        if method:
-            string_parts.append(' -X %s' % method)
-
-        string_parts.append(' %s' % url)
-
-        if headers:
-            for header in headers.iteritems():
-                string_parts.append(' -H "%s: %s"' % header)
-
-        logger.debug("REQ: %s" % "".join(string_parts))
-
-        data = kwargs.get('data')
-        if data:
-            logger.debug("REQ BODY: %s\n" % data)
-
-    try:
-        resp = requests.request(
-            method,
-            url,
-            headers=headers,
-            **kwargs)
-    except requests.ConnectionError:
-        msg = 'Unable to establish connection to %s' % url
-        raise exceptions.ClientException(msg)
-
-    if debug:
-        logger.debug("RESP: [%s] %s\nRESP BODY: %s\n",
-                     resp.status_code, resp.headers, resp.text)
-
-    if resp.status_code >= 400:
-        logger.debug("Request returned failure status: %s",
-                     resp.status_code)
-        raise exceptions.from_response(resp, method, url)
-
-    return resp
-
-
-class HTTPClientProxy(object):
-    """This class provides apiclient.HTTPClient interface.
-
-    This interface is used by AuthPlugin descendants.
-    """
-
-    def __init__(self, http_client):
-        self.http_client = http_client
-
-    @staticmethod
-    def concat_url(endpoint, url):
-        """Concatenate endpoint and final URL.
-
-        E.g., "http://keystone/v2.0/" and "/tokens" are concatenated to
-        "http://keystone/v2.0/tokens".
-
-        :param endpoint: the base URL
-        :param url: the final URL
-        """
-        return "%s/%s" % (endpoint.rstrip("/"), url.strip("/"))
-
-    @property
-    def region_name(self):
-        return self.http_client.region_name
-
-    def request(self, method, url, **kwargs):
-        try:
-            del kwargs["allow_redirects"]
-        except KeyError:
-            pass
-        if "json" in kwargs:
-            kwargs["body"] = kwargs["json"]
-            del kwargs["json"]
-        return self.http_client.request(
-            url, method, **kwargs)[0]
-
-
-class HTTPClient(object):
+class HTTPClient(client.BaseClient):
     """Base class for Keystone clients of different versions.
 
     Fields and properties:
@@ -190,6 +73,9 @@ class HTTPClient(object):
     * version
     """
 
+    service_type = "identity"
+    endpoint_type = "adminURL"
+
     def __init__(self, username=None, tenant_id=None, tenant_name=None,
                  password=None, auth_url=None, region_name=None, timeout=None,
                  endpoint=None, token=None, cacert=None, key=None,
@@ -199,8 +85,8 @@ class HTTPClient(object):
                  user_domain_name=None, domain_id=None, domain_name=None,
                  project_id=None, project_name=None, project_domain_id=None,
                  project_domain_name=None,
-                 auth_plugin=None,
-                 version=None):
+                 version=None,
+                 http_client=None):
         """Construct a new http client
 
         :param string user_id: User ID for authentication. (optional)
@@ -277,14 +163,14 @@ class HTTPClient(object):
             auth_url = auth_url.rstrip('/')
         if endpoint:
             endpoint = endpoint.rstrip('/')
-        if auth_plugin:
-            self.auth_plugin = auth_plugin
+        if http_client:
+            auth_plugin = http_client.auth_plugin
         elif not auth_url:
-            self.auth_plugin = auth_endpoint.TokenEndpointAuthPlugin(
+            auth_plugin = auth_endpoint.TokenEndpointAuthPlugin(
                 token=token,
                 endpoint=endpoint)
         elif version == 'v3':
-            self.auth_plugin = auth_keystone.KeystoneAuthPluginV3(
+            auth_plugin = auth_keystone.KeystoneAuthPluginV3(
                 auth_url=auth_url,
                 user_id=user_id,
                 username=username,
@@ -300,7 +186,7 @@ class HTTPClient(object):
                 token=token
             )
         else:
-            self.auth_plugin = auth_keystone.KeystoneAuthPluginV2(
+            auth_plugin = auth_keystone.KeystoneAuthPluginV2(
                 auth_url=auth_url,
                 user_id=user_id,
                 username=username,
@@ -310,44 +196,69 @@ class HTTPClient(object):
                 tenant_name=tenant_name,
             )
         if endpoint:
-            self.auth_plugin.opts["endpoint"] = endpoint
+            auth_plugin.opts["endpoint"] = endpoint
         if auth_ref:
-            self.auth_plugin.access_info = access.AccessInfo.factory(
+            auth_plugin.access_info = access.AccessInfo.factory(
                 **auth_ref)
 
-        self.timeout = float(timeout) if timeout is not None else None
-
-        self.region_name = region_name
-
-        self.original_ip = original_ip
-        if cacert:
-            self.verify_cert = cacert
-        else:
-            self.verify_cert = True
-        if insecure:
-            self.verify_cert = False
-        self.cert = cert
-        if cert and key:
-            self.cert = (cert, key,)
-
-        # logging setup
-        self.debug_log = debug
-        if self.debug_log and not _logger.handlers:
-            ch = logging.StreamHandler()
-            _logger.setLevel(logging.DEBUG)
-            _logger.addHandler(ch)
-            if hasattr(requests, 'logging'):
-                requests.logging.getLogger(requests.__name__).addHandler(ch)
+        if not http_client:
+            if cacert:
+                verify = cacert
+            else:
+                verify = True
+            if insecure:
+                verify = False
+            if cert and key:
+                cert = (cert, key,)
+            else:
+                cert = cert or None
+            http_client = client.HTTPClient(
+                auth_plugin=auth_plugin,
+                timeout=float(timeout) if timeout is not None else None,
+                region_name=region_name,
+                original_ip=original_ip,
+                verify=verify,
+                cert=cert,
+                debug=debug)
+            http_client.user_agent = "python-keystoneclient"
+        super(HTTPClient, self).__init__(http_client=http_client)
 
         # keyring setup
         if use_keyring and keyring is None:
             _logger.warning('Failed to load keyring modules.')
         self.use_keyring = use_keyring and keyring is not None
+
         self.force_new_token = force_new_token
         self.stale_duration = stale_duration or access.STALE_TOKEN_DURATION
         self.stale_duration = int(self.stale_duration)
 
-        self.proxy = HTTPClientProxy(self)
+    @property
+    def debug_log(self):
+        return self.http_client.debug
+
+    @property
+    def auth_plugin(self):
+        return self.http_client.auth_plugin
+
+    @auth_plugin.setter
+    def auth_plugin(self, value):
+        self.http_client.auth_plugin = value
+
+    @property
+    def timeout(self):
+        return self.http_client.timeout
+
+    @property
+    def verify_cert(self):
+        return self.http_client.verify
+
+    @property
+    def cert(self):
+        return self.http_client.cert
+
+    @property
+    def region_name(self):
+        return self.http_client.region_name
 
     @property
     def auth_domain_id(self):
@@ -585,7 +496,7 @@ class HTTPClient(object):
         new_token_needed = False
         if auth_ref is None or self.force_new_token:
             new_token_needed = True
-            self.auth_plugin.authenticate(self.proxy)
+            self.http_client.authenticate()
         else:
             self.auth_plugin.access_info = auth_ref
         if new_token_needed:
@@ -683,86 +594,3 @@ class HTTPClient(object):
     def has_service_catalog(self):
         """Returns True if this client provides a service catalog."""
         return self.auth_ref.has_service_catalog()
-
-    def request(self, url, method, body=None, **kwargs):
-        """Send an http request with the specified characteristics.
-
-        Wrapper around requests.request to handle tasks such as
-        setting headers, JSON encoding/decoding, and error handling.
-        """
-        # Copy the kwargs so we can reuse the original in case of redirects
-        request_kwargs = copy.copy(kwargs)
-        request_kwargs.setdefault('headers', kwargs.get('headers', {}))
-
-        if body:
-            request_kwargs['headers']['Content-Type'] = 'application/json'
-            request_kwargs['data'] = self.serialize(body)
-
-        if self.cert:
-            request_kwargs.setdefault('cert', self.cert)
-        if self.timeout is not None:
-            request_kwargs.setdefault('timeout', self.timeout)
-
-        resp = request(url, method, original_ip=self.original_ip,
-                       verify=self.verify_cert, debug=self.debug_log,
-                       **request_kwargs)
-
-        if resp.text:
-            try:
-                body_resp = json.loads(resp.text)
-            except (ValueError, TypeError):
-                body_resp = None
-                _logger.debug("Could not decode JSON from body: %s"
-                              % resp.text)
-        else:
-            _logger.debug("No body was returned.")
-            body_resp = None
-
-        if resp.status_code in (301, 302, 305):
-            # Redirected. Reissue the request to the new location.
-            return self.request(resp.headers['location'], method, body,
-                                **request_kwargs)
-
-        return resp, body_resp
-
-    def _cs_request(self, url, method, **kwargs):
-        """Makes an authenticated request to keystone endpoint by
-        concatenating self.management_url and url and passing in method and
-        any associated kwargs.
-        """
-
-        is_management = kwargs.pop('management', True)
-
-        if is_management and self.management_url is None:
-            raise exceptions.AuthorizationFailure(
-                'Current authorization does not have a known management url')
-
-        url_to_use = self.auth_url
-        if is_management:
-            url_to_use = self.management_url
-
-        kwargs.setdefault('headers', {})
-        if self.auth_token:
-            kwargs['headers']['X-Auth-Token'] = self.auth_token
-
-        resp, body = self.request(url_to_use + url, method,
-                                  **kwargs)
-        return resp, body
-
-    def get(self, url, **kwargs):
-        return self._cs_request(url, 'GET', **kwargs)
-
-    def head(self, url, **kwargs):
-        return self._cs_request(url, 'HEAD', **kwargs)
-
-    def post(self, url, **kwargs):
-        return self._cs_request(url, 'POST', **kwargs)
-
-    def put(self, url, **kwargs):
-        return self._cs_request(url, 'PUT', **kwargs)
-
-    def patch(self, url, **kwargs):
-        return self._cs_request(url, 'PATCH', **kwargs)
-
-    def delete(self, url, **kwargs):
-        return self._cs_request(url, 'DELETE', **kwargs)

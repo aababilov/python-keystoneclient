@@ -18,8 +18,6 @@ import copy
 import urlparse
 import uuid
 
-import requests
-
 from keystoneclient import exceptions
 from keystoneclient.v3 import roles
 from tests.v3 import utils
@@ -51,7 +49,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'PUT'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -74,7 +72,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'PUT'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -97,7 +95,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'GET'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -120,7 +118,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'GET'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -143,7 +141,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'HEAD'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -168,7 +166,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'HEAD'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -191,7 +189,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'DELETE'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -214,7 +212,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'DELETE'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -237,7 +235,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'PUT'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -260,7 +258,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'PUT'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -283,7 +281,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'GET'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -306,7 +304,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'GET'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -329,7 +327,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'HEAD'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -352,7 +350,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'HEAD'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -375,7 +373,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'DELETE'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -398,7 +396,7 @@ class RoleTests(utils.TestCase, utils.CrudTests):
         method = 'DELETE'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,

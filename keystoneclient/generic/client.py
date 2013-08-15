@@ -18,8 +18,9 @@
 import logging
 import urlparse
 
-from keystoneclient import exceptions
+from keystoneclient.apiclient import exceptions
 from keystoneclient import httpclient
+
 
 _logger = logging.getLogger(__name__)
 
@@ -45,7 +46,6 @@ class Client(httpclient.HTTPClient):
         >>> user.delete()
 
     """
-
     def __init__(self, endpoint=None, **kwargs):
         """Initialize a new client for the Keystone v2.0 API."""
         super(Client, self).__init__(endpoint=endpoint, **kwargs)
@@ -80,47 +80,43 @@ class Client(httpclient.HTTPClient):
     def _check_keystone_versions(self, url):
         """Calls Keystone URL and detects the available API versions."""
         try:
-            client = httpclient.HTTPClient()
-            resp, body = client.request(url, "GET",
-                                        headers={'Accept':
-                                                 'application/json'})
+            resp = self.http_client.request(
+                "GET", url, headers={'Accept': 'application/json'})
             # Multiple Choices status code is returned by the root
             # identity endpoint, with references to one or more
             # Identity API versions -- v3 spec
             # some cases we get No Content
-            if resp.status_code in (200, 204, 300):
-                try:
-                    results = {}
-                    if 'version' in body:
-                        results['message'] = "Keystone found at %s" % url
-                        version = body['version']
-                        # Stable/diablo incorrect format
+            body = resp.json()
+            if not body:
+                return None
+            try:
+                results = {}
+                if 'version' in body:
+                    results['message'] = "Keystone found at %s" % url
+                    version = body['version']
+                    # Stable/diablo incorrect format
+                    id, status, version_url = \
+                        self._get_version_info(version, url)
+                    results[str(id)] = {"id": id,
+                                        "status": status,
+                                        "url": version_url}
+                    return results
+                elif 'versions' in body:
+                    # Correct format
+                    results['message'] = "Keystone found at %s" % url
+                    for version in body['versions']['values']:
                         id, status, version_url = \
                             self._get_version_info(version, url)
                         results[str(id)] = {"id": id,
                                             "status": status,
                                             "url": version_url}
-                        return results
-                    elif 'versions' in body:
-                        # Correct format
-                        results['message'] = "Keystone found at %s" % url
-                        for version in body['versions']['values']:
-                            id, status, version_url = \
-                                self._get_version_info(version, url)
-                            results[str(id)] = {"id": id,
-                                                "status": status,
-                                                "url": version_url}
-                        return results
-                    else:
-                        results['message'] = ("Unrecognized response from %s"
-                                              % url)
                     return results
-                except KeyError:
-                    raise exceptions.AuthorizationFailure()
-            elif resp.status_code == 305:
-                return self._check_keystone_versions(resp['location'])
-            else:
-                raise exceptions.from_response(resp, "GET", url)
+                else:
+                    results['message'] = ("Unrecognized response from %s"
+                                          % url)
+                return results
+            except KeyError:
+                raise exceptions.AuthorizationFailure()
         except Exception as e:
             _logger.exception(e)
 
@@ -143,43 +139,39 @@ class Client(httpclient.HTTPClient):
     def _check_keystone_extensions(self, url):
         """Calls Keystone URL and detects the available extensions."""
         try:
-            client = httpclient.HTTPClient()
             if not url.endswith("/"):
                 url += '/'
-            resp, body = client.request("%sextensions" % url, "GET",
-                                        headers={'Accept':
-                                                 'application/json'})
-            if resp.status_code in (200, 204):  # some cases we get No Content
-                try:
-                    results = {}
-                    if 'extensions' in body:
-                        if 'values' in body['extensions']:
-                            # Parse correct format (per contract)
-                            for extension in body['extensions']['values']:
-                                alias, name = \
-                                    self._get_extension_info(
-                                        extension['extension']
-                                    )
-                                results[alias] = name
-                            return results
-                        else:
-                            # Support incorrect, but prevalent format
-                            for extension in body['extensions']:
-                                alias, name = \
-                                    self._get_extension_info(extension)
-                                results[alias] = name
-                            return results
+            resp = self.http_client.request(
+                "GET", "%sextensions" % url,
+                headers={'Accept': 'application/json'})
+            body = resp.json()
+            if not body:
+                return None
+            try:
+                results = {}
+                if 'extensions' in body:
+                    if 'values' in body['extensions']:
+                        # Parse correct format (per contract)
+                        for extension in body['extensions']['values']:
+                            alias, name = \
+                                self._get_extension_info(
+                                    extension.get('extension', extension)
+                                )
+                            results[alias] = name
+                        return results
                     else:
-                        results['message'] = ("Unrecognized extensions "
-                                              "response from %s" % url)
-                    return results
-                except KeyError:
-                    raise exceptions.AuthorizationFailure()
-            elif resp.status_code == 305:
-                return self._check_keystone_extensions(resp['location'])
-            else:
-                raise exceptions.from_response(
-                    resp, "GET", "%sextensions" % url)
+                        # Support incorrect, but prevalent format
+                        for extension in body['extensions']:
+                            alias, name = \
+                                self._get_extension_info(extension)
+                            results[alias] = name
+                        return results
+                else:
+                    results['message'] = ("Unrecognized extensions "
+                                          "response from %s" % url)
+                return results
+            except KeyError:
+                raise exceptions.AuthorizationFailure()
         except Exception as e:
             _logger.exception(e)
 

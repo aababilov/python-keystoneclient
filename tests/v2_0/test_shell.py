@@ -5,7 +5,8 @@ import sys
 
 from testtools import matchers
 
-from keystoneclient import httpclient
+from keystoneclient.apiclient import client as api_client
+from keystoneclient.auth import keystone
 
 from tests import utils
 from tests.v2_0 import fakes
@@ -26,15 +27,7 @@ class ShellTests(utils.TestCase):
         super(ShellTests, self).setUp()
         self.stubs = stubout.StubOutForTesting()
 
-        self.fake_client = fakes.FakeHTTPClient()
-        self.stubs.Set(
-            httpclient.HTTPClient, "_cs_request",
-            lambda ign_self, *args, **kwargs:
-            self.fake_client._cs_request(*args, **kwargs))
-        self.stubs.Set(
-            httpclient.HTTPClient, "authenticate",
-            lambda cl_obj:
-            self.fake_client.authenticate(cl_obj))
+        self.stubs.Set(api_client, "HTTPClient", fakes.FakeHTTPClient)
         self.old_environment = os.environ.copy()
         os.environ = {
             'OS_USERNAME': DEFAULT_USERNAME,
@@ -46,11 +39,18 @@ class ShellTests(utils.TestCase):
         import keystoneclient.shell
         self.shell = keystoneclient.shell.OpenStackIdentityShell()
 
+    @property
+    def fake_client(self):
+        return self.shell.cs.http_client
+
     def tearDown(self):
         self.stubs.UnsetAll()
         self.stubs.SmartUnsetAll()
         os.environ = self.old_environment
-        self.fake_client.clear_callstack()
+        try:
+            self.fake_client.clear_callstack()
+        except AttributeError:
+            pass
         super(ShellTests, self).tearDown()
 
     def run_command(self, cmd):
@@ -258,6 +258,9 @@ class ShellTests(utils.TestCase):
             'GET', '/users/1/credentials/OS-EC2/2')
 
     def test_bootstrap(self):
+        self.stubs.Set(keystone.KeystoneAuthPluginV2,
+                       "authenticate",
+                       lambda self, http_client: None)
         self.run_command('bootstrap --user-name new-user'
                          ' --pass 1 --role-name admin'
                          ' --tenant-name new-tenant')

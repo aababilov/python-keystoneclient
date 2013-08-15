@@ -2,8 +2,6 @@ import copy
 import urlparse
 import uuid
 
-import requests
-
 from keystoneclient.v3 import projects
 from tests.v3 import utils
 
@@ -36,7 +34,7 @@ class ProjectTests(utils.TestCase, utils.CrudTests):
         method = 'GET'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,
@@ -60,7 +58,7 @@ class ProjectTests(utils.TestCase, utils.CrudTests):
         method = 'GET'
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.headers[method]
-        requests.request(
+        self.add_request(
             method,
             urlparse.urljoin(
                 self.TEST_URL,

@@ -41,7 +41,7 @@ class TokenManager(base.Manager):
         token_ref = self._create('/tokens', params, "access",
                                  return_raw=return_raw)
         if reset:
-            self.api.management_url = None
+            del self.api.auth_plugin.opts["endpoint"]
         return token_ref
 
     def delete(self, token):

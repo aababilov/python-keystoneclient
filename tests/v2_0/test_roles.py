@@ -2,8 +2,6 @@ import copy
 import json
 import urlparse
 
-import requests
-
 from keystoneclient.v2_0 import roles
 from tests import utils
 
@@ -55,7 +53,7 @@ class RoleTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request('POST',
+        self.add_request('POST',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/OS-KSADM/roles'),
                          **kwargs).AndReturn((resp))
@@ -74,7 +72,7 @@ class RoleTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/OS-KSADM/roles/1'),
                          **kwargs).AndReturn((resp))
@@ -92,7 +90,7 @@ class RoleTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/OS-KSADM/roles/1'),
                          **kwargs).AndReturn((resp))
@@ -111,7 +109,7 @@ class RoleTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/OS-KSADM/roles'),
                          **kwargs).AndReturn((resp))
@@ -128,7 +126,7 @@ class RoleTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/users/foo/roles'),
                          **kwargs).AndReturn((resp))
@@ -145,7 +143,7 @@ class RoleTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/barrr/users/foo/roles'),
                          **kwargs).AndReturn((resp))
@@ -162,7 +160,7 @@ class RoleTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('PUT',
+        self.add_request('PUT',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/users/foo/roles/OS-KSADM/barrr'),
                          **kwargs).AndReturn((resp))
@@ -178,7 +176,7 @@ class RoleTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('PUT',
+        self.add_request('PUT',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/4/users/foo/roles/OS-KSADM/barrr'),
                          **kwargs).AndReturn((resp))
@@ -194,7 +192,7 @@ class RoleTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/users/foo/roles/OS-KSADM/barrr'),
                          **kwargs).AndReturn((resp))
@@ -210,7 +208,7 @@ class RoleTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/tenants/4/users/foo/roles/OS-KSADM/barrr'),
                          **kwargs).AndReturn((resp))

@@ -71,10 +71,13 @@ class UserManager(base.ManagerWithFind):
         params = {"user": {"password": passwd,
                            "original_password": origpasswd}}
 
-        return self._update("/OS-KSCRUD/users/%s" % self.api.user_id, params,
-                            response_key="access",
-                            method="PATCH",
-                            management=False)
+        self.api.endpoint_type = "publicURL"
+        try:
+            return self._patch("/OS-KSCRUD/users/%s" % self.api.user_id,
+                               params,
+                               response_key="access")
+        finally:
+            self.api.endpoint_type = "adminURL"
 
     def update_tenant(self, user, tenant):
         """Update default tenant."""

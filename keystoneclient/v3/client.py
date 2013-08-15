@@ -12,7 +12,6 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-import json
 import logging
 
 from keystoneclient import httpclient
@@ -96,8 +95,5 @@ class Client(httpclient.HTTPClient):
         self.services = services.ServiceManager(self)
         self.users = users.UserManager(self)
 
-        if self.management_url is None:
+        if kwargs.get("http_client") is None and self.management_url is None:
             self.authenticate()
-
-    def serialize(self, entity):
-        return json.dumps(entity, sort_keys=True)

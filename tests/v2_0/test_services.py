@@ -2,8 +2,6 @@ import copy
 import json
 import urlparse
 
-import requests
-
 from keystoneclient.v2_0 import services
 from tests import utils
 
@@ -63,7 +61,7 @@ class ServiceTests(utils.TestCase):
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_POST_HEADERS
         kwargs['data'] = json.dumps(req_body)
-        requests.request('POST',
+        self.add_request('POST',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/OS-KSADM/services'),
                          **kwargs).AndReturn((resp))
@@ -85,7 +83,7 @@ class ServiceTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('DELETE',
+        self.add_request('DELETE',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/OS-KSADM/services/1'),
                          **kwargs).AndReturn((resp))
@@ -102,7 +100,7 @@ class ServiceTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/OS-KSADM/services/1'),
                          **kwargs).AndReturn((resp))
@@ -122,7 +120,7 @@ class ServiceTests(utils.TestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          urlparse.urljoin(self.TEST_URL,
                          'v2.0/OS-KSADM/services'),
                          **kwargs).AndReturn((resp))

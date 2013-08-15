@@ -1,6 +1,5 @@
 import copy
 import json
-import requests
 
 from keystoneclient.generic import client
 from tests import utils
@@ -54,12 +53,12 @@ class DiscoverKeystoneTests(utils.UnauthenticatedTestCase):
 
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          self.TEST_ROOT_URL,
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
 
-        cs = client.Client()
+        cs = client.Client(http_client=self.http_client)
         versions = cs.discover(self.TEST_ROOT_URL)
         self.assertIsInstance(versions, dict)
         self.assertIn('message', versions)
@@ -76,12 +75,12 @@ class DiscoverKeystoneTests(utils.UnauthenticatedTestCase):
         })
         kwargs = copy.copy(self.TEST_REQUEST_BASE)
         kwargs['headers'] = self.TEST_REQUEST_HEADERS
-        requests.request('GET',
+        self.add_request('GET',
                          "http://localhost:35357",
                          **kwargs).AndReturn((resp))
         self.mox.ReplayAll()
 
-        cs = client.Client()
+        cs = client.Client(http_client=self.http_client)
         versions = cs.discover()
         self.assertIsInstance(versions, dict)
         self.assertIn('message', versions)

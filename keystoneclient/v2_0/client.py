@@ -133,5 +133,5 @@ class Client(httpclient.HTTPClient):
         # extensions
         self.ec2 = ec2.CredentialsManager(self)
 
-        if self.management_url is None:
+        if kwargs.get("http_client") is None and self.management_url is None:
             self.authenticate()
